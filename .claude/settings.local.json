@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(mdfind:*)",
-      "Read(//Applications/**)",
-      "Bash(brew list:*)"
-    ]
-  }
-}
