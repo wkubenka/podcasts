@@ -20,16 +20,25 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.astutepodcasts.app.ui.toUserMessage
 
+enum class EpisodeSortOrder { NEWEST_FIRST, OLDEST_FIRST }
+
 data class PodcastDetailUiState(
     val podcast: Podcast? = null,
     val episodes: List<Episode> = emptyList(),
     val isLoading: Boolean = false,
     val isSubscribed: Boolean = false,
     val error: String? = null,
-    val showArchived: Boolean = false
+    val showArchived: Boolean = false,
+    val sortOrder: EpisodeSortOrder = EpisodeSortOrder.NEWEST_FIRST
 ) {
     val filteredEpisodes: List<Episode>
-        get() = if (showArchived) episodes else episodes.filter { !it.isArchived }
+        get() {
+            val visible = if (showArchived) episodes else episodes.filter { !it.isArchived }
+            return when (sortOrder) {
+                EpisodeSortOrder.NEWEST_FIRST -> visible.sortedByDescending { it.publishedAt }
+                EpisodeSortOrder.OLDEST_FIRST -> visible.sortedBy { it.publishedAt }
+            }
+        }
 }
 
 @HiltViewModel
@@ -88,6 +97,17 @@ class PodcastDetailViewModel @Inject constructor(
 
     fun toggleShowArchived() {
         _uiState.update { it.copy(showArchived = !it.showArchived) }
+    }
+
+    fun toggleSortOrder() {
+        _uiState.update {
+            it.copy(
+                sortOrder = when (it.sortOrder) {
+                    EpisodeSortOrder.NEWEST_FIRST -> EpisodeSortOrder.OLDEST_FIRST
+                    EpisodeSortOrder.OLDEST_FIRST -> EpisodeSortOrder.NEWEST_FIRST
+                }
+            )
+        }
     }
 
     fun archiveEpisode(episodeId: Long) {

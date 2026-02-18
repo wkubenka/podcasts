@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -127,6 +128,18 @@ fun PodcastDetailScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.weight(1f)
                             )
+                            AssistChip(
+                                onClick = viewModel::toggleSortOrder,
+                                label = {
+                                    Text(
+                                        when (uiState.sortOrder) {
+                                            EpisodeSortOrder.NEWEST_FIRST -> "Newest first"
+                                            EpisodeSortOrder.OLDEST_FIRST -> "Oldest first"
+                                        }
+                                    )
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             FilterChip(
                                 selected = uiState.showArchived,
                                 onClick = viewModel::toggleShowArchived,
