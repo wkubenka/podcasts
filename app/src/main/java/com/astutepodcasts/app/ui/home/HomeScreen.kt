@@ -2,25 +2,27 @@ package com.astutepodcasts.app.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.astutepodcasts.app.domain.model.Episode
-import com.astutepodcasts.app.domain.model.Podcast
 import com.astutepodcasts.app.ui.components.EpisodeListItem
 import com.astutepodcasts.app.ui.components.PodcastCard
 
@@ -29,17 +31,17 @@ import com.astutepodcasts.app.ui.components.PodcastCard
 fun HomeScreen(
     onPodcastClick: (Long) -> Unit,
     onEpisodePlayClick: (Episode) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val samplePodcasts = samplePodcastList()
-    val sampleEpisodes = sampleEpisodeList()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Astute Podcasts") }
         )
 
-        if (samplePodcasts.isEmpty()) {
+        if (uiState.subscribedPodcasts.isEmpty()) {
             EmptyHomeState(modifier = Modifier.fillMaxSize())
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -51,15 +53,40 @@ fun HomeScreen(
                     )
                 }
                 item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     ) {
-                        items(samplePodcasts) { podcast ->
+                        FilterChip(
+                            selected = uiState.sortOrder == PodcastSortOrder.RECENT_EPISODES,
+                            onClick = { viewModel.setSortOrder(PodcastSortOrder.RECENT_EPISODES) },
+                            label = { Text("Recent") }
+                        )
+                        FilterChip(
+                            selected = uiState.sortOrder == PodcastSortOrder.ALPHABETICAL,
+                            onClick = { viewModel.setSortOrder(PodcastSortOrder.ALPHABETICAL) },
+                            label = { Text("A\u2013Z") }
+                        )
+                    }
+                }
+                val rows = uiState.subscribedPodcasts.chunked(3)
+                items(rows) { rowPodcasts ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        rowPodcasts.forEach { podcast ->
                             PodcastCard(
                                 podcast = podcast,
-                                onClick = { onPodcastClick(podcast.id) }
+                                onClick = { onPodcastClick(podcast.id) },
+                                modifier = Modifier.weight(1f)
                             )
+                        }
+                        // Fill remaining slots with empty spacers for incomplete rows
+                        repeat(3 - rowPodcasts.size) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -71,7 +98,7 @@ fun HomeScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
-                items(sampleEpisodes) { episode ->
+                items(uiState.recentEpisodes) { episode ->
                     EpisodeListItem(
                         episode = episode,
                         onPlayClick = { onEpisodePlayClick(episode) },
@@ -103,17 +130,3 @@ private fun EmptyHomeState(modifier: Modifier = Modifier) {
         )
     }
 }
-
-private fun samplePodcastList() = listOf(
-    Podcast(1, "The Daily", "The New York Times", "Daily news podcast", null, "", "en", 500, 0),
-    Podcast(2, "Serial", "Serial Productions", "True crime stories", null, "", "en", 50, 0),
-    Podcast(3, "Radiolab", "WNYC Studios", "Science and curiosity", null, "", "en", 300, 0),
-    Podcast(4, "99% Invisible", "Roman Mars", "Design and architecture", null, "", "en", 400, 0),
-)
-
-private fun sampleEpisodeList() = listOf(
-    Episode(1, 1, "Monday's Headlines", "Today's top stories", "", null, 1708300000, 1800, 0, 1, null),
-    Episode(2, 2, "The Investigation Begins", "A new case unfolds", "", null, 1708200000, 3600, 0, 1, 1),
-    Episode(3, 3, "The Sound of Science", "Exploring acoustics", "", null, 1708100000, 2700, 0, null, null),
-    Episode(4, 4, "Hidden Design", "Unseen architecture", "", null, 1708000000, 2400, 0, null, null),
-)

@@ -100,14 +100,13 @@ fun PodcastDetailScreen(
             }
             uiState.podcast != null -> {
                 val podcast = uiState.podcast!!
-                var isSubscribed by remember { mutableStateOf(false) }
 
                 LazyColumn {
                     item {
                         PodcastHeader(
                             podcast = podcast,
-                            isSubscribed = isSubscribed,
-                            onSubscribeClick = { isSubscribed = !isSubscribed }
+                            isSubscribed = uiState.isSubscribed,
+                            onSubscribeClick = viewModel::toggleSubscription
                         )
                     }
                     item {
