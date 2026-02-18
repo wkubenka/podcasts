@@ -41,7 +41,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
 
     override suspend fun subscribe(podcast: Podcast, episodes: List<Episode>) {
         podcastDao.insert(podcast.toEntity())
-        episodeDao.insertAll(episodes.map { it.toEntity() })
+        episodeDao.upsertAllPreservingDownloadStatus(episodes.map { it.toEntity() })
         subscriptionDao.insert(
             SubscriptionEntity(
                 podcastId = podcast.id,
@@ -60,7 +60,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
             try {
                 val episodes = api.getEpisodesByFeedId(podcastId).items
                     .map { it.toDomain(overridePodcastId = podcastId) }
-                episodeDao.insertAll(episodes.map { it.toEntity() })
+                episodeDao.upsertAllPreservingDownloadStatus(episodes.map { it.toEntity() })
             } catch (_: Exception) {
                 // Skip failed feeds silently
             }

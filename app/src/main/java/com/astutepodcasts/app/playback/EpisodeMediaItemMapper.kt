@@ -30,9 +30,12 @@ object EpisodeMediaItemMapper {
             .setExtras(extras)
             .build()
 
+        val mediaUri = episode.localFilePath?.let { Uri.parse(it) }
+            ?: Uri.parse(episode.audioUrl)
+
         return MediaItem.Builder()
             .setMediaId(episode.id.toString())
-            .setUri(episode.audioUrl)
+            .setUri(mediaUri)
             .setMediaMetadata(metadata)
             .build()
     }

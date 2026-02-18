@@ -31,6 +31,10 @@ import com.astutepodcasts.app.ui.components.PodcastCard
 fun HomeScreen(
     onPodcastClick: (Long) -> Unit,
     onEpisodePlayClick: (Episode) -> Unit,
+    onEpisodeDownloadClick: (Episode) -> Unit,
+    onCancelDownloadClick: (Long) -> Unit,
+    onDeleteDownloadClick: (Long) -> Unit,
+    downloadProgressMap: Map<Long, Int> = emptyMap(),
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -102,7 +106,10 @@ fun HomeScreen(
                     EpisodeListItem(
                         episode = episode,
                         onPlayClick = { onEpisodePlayClick(episode) },
-                        onDownloadClick = { },
+                        onDownloadClick = { onEpisodeDownloadClick(episode) },
+                        onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
+                        onDeleteDownloadClick = { onDeleteDownloadClick(episode.id) },
+                        downloadProgress = downloadProgressMap[episode.id]?.let { it / 100f },
                         onClick = { }
                     )
                 }

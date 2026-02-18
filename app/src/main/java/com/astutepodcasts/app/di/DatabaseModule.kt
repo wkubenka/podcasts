@@ -2,6 +2,7 @@ package com.astutepodcasts.app.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.astutepodcasts.app.data.local.PodcastDatabase
 import com.astutepodcasts.app.data.local.dao.EpisodeDao
 import com.astutepodcasts.app.data.local.dao.PodcastDao
@@ -35,4 +36,9 @@ object DatabaseModule {
 
     @Provides
     fun provideSubscriptionDao(database: PodcastDatabase): SubscriptionDao = database.subscriptionDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager =
+        WorkManager.getInstance(context)
 }

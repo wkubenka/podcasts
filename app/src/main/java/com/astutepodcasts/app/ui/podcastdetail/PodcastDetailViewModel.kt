@@ -47,6 +47,33 @@ class PodcastDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(isSubscribed = subscribed) }
             }
             .launchIn(viewModelScope)
+
+        // Observe Room episodes reactively so download status changes are reflected
+        episodeRepository.observeEpisodesForPodcast(podcastId)
+            .onEach { roomEpisodes ->
+                if (roomEpisodes.isEmpty()) return@onEach
+                _uiState.update { state ->
+                    if (state.episodes.isEmpty()) {
+                        // Initial load hasn't completed yet, use Room data directly
+                        state.copy(episodes = roomEpisodes)
+                    } else {
+                        // Merge download statuses from Room into current episodes
+                        val statusMap = roomEpisodes.associate {
+                            it.id to it
+                        }
+                        val updated = state.episodes.map { episode ->
+                            statusMap[episode.id]?.let { roomEp ->
+                                episode.copy(
+                                    downloadStatus = roomEp.downloadStatus,
+                                    localFilePath = roomEp.localFilePath
+                                )
+                            } ?: episode
+                        }
+                        state.copy(episodes = updated)
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     fun retry() {
@@ -71,14 +98,27 @@ class PodcastDetailViewModel @Inject constructor(
             try {
                 val podcastDeferred = async { podcastRepository.getPodcastById(podcastId) }
                 val episodesDeferred = async { episodeRepository.getEpisodesForPodcast(podcastId) }
+                val localEpisodesDeferred = async { episodeRepository.getLocalEpisodesForPodcast(podcastId) }
 
                 val podcast = podcastDeferred.await()
-                val episodes = episodesDeferred.await()
+                val apiEpisodes = episodesDeferred.await()
+                val localEpisodes = localEpisodesDeferred.await()
+
+                // Merge: use API episode data but preserve download status from Room
+                val localStatusMap = localEpisodes.associate { it.id to it }
+                val mergedEpisodes = apiEpisodes.map { episode ->
+                    localStatusMap[episode.id]?.let { local ->
+                        episode.copy(
+                            downloadStatus = local.downloadStatus,
+                            localFilePath = local.localFilePath
+                        )
+                    } ?: episode
+                }
 
                 _uiState.update {
                     it.copy(
                         podcast = podcast,
-                        episodes = episodes,
+                        episodes = mergedEpisodes,
                         isLoading = false
                     )
                 }

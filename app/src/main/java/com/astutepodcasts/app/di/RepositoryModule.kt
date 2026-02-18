@@ -1,8 +1,10 @@
 package com.astutepodcasts.app.di
 
+import com.astutepodcasts.app.data.repository.DownloadRepositoryImpl
 import com.astutepodcasts.app.data.repository.EpisodeRepositoryImpl
 import com.astutepodcasts.app.data.repository.PodcastRepositoryImpl
 import com.astutepodcasts.app.data.repository.SubscriptionRepositoryImpl
+import com.astutepodcasts.app.domain.repository.DownloadRepository
 import com.astutepodcasts.app.domain.repository.EpisodeRepository
 import com.astutepodcasts.app.domain.repository.PodcastRepository
 import com.astutepodcasts.app.domain.repository.SubscriptionRepository
@@ -23,4 +25,7 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindSubscriptionRepository(impl: SubscriptionRepositoryImpl): SubscriptionRepository
+
+    @Binds
+    abstract fun bindDownloadRepository(impl: DownloadRepositoryImpl): DownloadRepository
 }

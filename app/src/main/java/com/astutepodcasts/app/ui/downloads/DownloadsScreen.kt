@@ -14,10 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,51 +24,44 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-
-data class DownloadedEpisode(
-    val id: Long,
-    val title: String,
-    val podcastTitle: String,
-    val artworkUrl: String?,
-    val sizeBytes: Long,
-    val isDownloaded: Boolean,
-    val progress: Float
-)
+import com.astutepodcasts.app.domain.model.DownloadStatus
+import com.astutepodcasts.app.domain.model.Episode
+import com.astutepodcasts.app.ui.components.DownloadButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
-    onEpisodePlayClick: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    onEpisodePlayClick: (Episode) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: DownloadsViewModel = hiltViewModel()
 ) {
-    val downloads = sampleDownloads()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(title = { Text("Downloads") })
 
-        if (downloads.isEmpty()) {
+        if (uiState.episodes.isEmpty()) {
             EmptyDownloadsState(modifier = Modifier.fillMaxSize())
         } else {
-            val totalSize = downloads.filter { it.isDownloaded }.sumOf { it.sizeBytes }
-            Text(
-                text = "Using ${formatFileSize(totalSize)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-
             LazyColumn {
-                items(downloads) { download ->
+                items(uiState.episodes, key = { it.id }) { episode ->
+                    val progress = uiState.progressMap[episode.id]
                     DownloadItem(
-                        download = download,
-                        onPlayClick = { onEpisodePlayClick(download.id) }
+                        episode = episode,
+                        downloadProgress = progress?.let { it / 100f },
+                        onPlayClick = { onEpisodePlayClick(episode) },
+                        onDeleteClick = { viewModel.deleteDownload(episode.id) },
+                        onCancelClick = { viewModel.cancelDownload(episode.id) }
                     )
                 }
             }
@@ -79,8 +71,11 @@ fun DownloadsScreen(
 
 @Composable
 private fun DownloadItem(
-    download: DownloadedEpisode,
-    onPlayClick: () -> Unit
+    episode: Episode,
+    downloadProgress: Float?,
+    onPlayClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onCancelClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -89,7 +84,7 @@ private fun DownloadItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = download.artworkUrl,
+            model = episode.artworkUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -99,44 +94,38 @@ private fun DownloadItem(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = download.title,
+                text = episode.title,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = download.podcastTitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = formatFileSize(download.sizeBytes),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
-        if (download.isDownloaded) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Downloaded",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            IconButton(onClick = onPlayClick) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Play",
-                    tint = MaterialTheme.colorScheme.primary
+        when (episode.downloadStatus) {
+            DownloadStatus.DOWNLOADED -> {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete download",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onPlayClick) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            DownloadStatus.QUEUED, DownloadStatus.DOWNLOADING -> {
+                DownloadButton(
+                    downloadStatus = episode.downloadStatus,
+                    downloadProgress = downloadProgress,
+                    onDownloadClick = {},
+                    onCancelClick = onCancelClick
                 )
             }
-        } else {
-            CircularProgressIndicator(
-                progress = { download.progress },
-                modifier = Modifier.size(24.dp),
-                strokeWidth = 2.dp,
-            )
+            else -> {}
         }
     }
 }
@@ -168,17 +157,3 @@ private fun EmptyDownloadsState(modifier: Modifier = Modifier) {
     }
 }
 
-private fun formatFileSize(bytes: Long): String {
-    return when {
-        bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1_000_000_000.0)
-        bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
-        bytes >= 1_000 -> "%.1f KB".format(bytes / 1_000.0)
-        else -> "$bytes B"
-    }
-}
-
-private fun sampleDownloads() = listOf(
-    DownloadedEpisode(1, "The Latest Episode", "The Daily", null, 45_000_000, true, 1f),
-    DownloadedEpisode(2, "Deep Dive: AI", "Lex Fridman Podcast", null, 120_000_000, true, 1f),
-    DownloadedEpisode(3, "New Investigation", "Serial", null, 35_000_000, false, 0.65f),
-)

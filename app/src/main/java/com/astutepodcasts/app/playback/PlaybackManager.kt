@@ -4,8 +4,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import com.astutepodcasts.app.data.local.PlaybackPreferences
+import com.astutepodcasts.app.domain.model.DownloadStatus
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.PlaybackState
+import com.astutepodcasts.app.domain.repository.DownloadRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,6 +15,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -22,7 +26,8 @@ import javax.inject.Singleton
 @Singleton
 class PlaybackManager @Inject constructor(
     private val connection: PlaybackServiceConnection,
-    private val playbackPreferences: PlaybackPreferences
+    private val playbackPreferences: PlaybackPreferences,
+    private val downloadRepository: DownloadRepository
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -31,6 +36,7 @@ class PlaybackManager @Inject constructor(
 
     private var currentEpisode: Episode? = null
     private var hasAttachedListener = false
+    private var downloadObserverJob: Job? = null
 
     init {
         scope.launch {
@@ -50,6 +56,7 @@ class PlaybackManager @Inject constructor(
     }
 
     fun play(episode: Episode) {
+        downloadObserverJob?.cancel()
         currentEpisode = episode
         _playbackState.update {
             it.copy(
@@ -67,6 +74,43 @@ class PlaybackManager @Inject constructor(
             controller.playbackParameters = PlaybackParameters(_playbackState.value.playbackSpeed)
             controller.prepare()
             controller.play()
+
+            when (episode.downloadStatus) {
+                DownloadStatus.NOT_DOWNLOADED, DownloadStatus.FAILED -> {
+                    downloadRepository.downloadEpisode(episode)
+                    observeDownloadCompletion(episode)
+                }
+                DownloadStatus.QUEUED, DownloadStatus.DOWNLOADING -> {
+                    observeDownloadCompletion(episode)
+                }
+                DownloadStatus.DOWNLOADED -> { /* already local, nothing to do */ }
+            }
+        }
+    }
+
+    private fun observeDownloadCompletion(episode: Episode) {
+        downloadObserverJob = scope.launch {
+            downloadRepository.observeEpisodeDownloaded(episode.id)
+                .filterNotNull()
+                .first { filePath ->
+                    val controller = connection.controller.value ?: return@first false
+                    // Only swap if we're still playing this episode
+                    if (currentEpisode?.id != episode.id) return@first true
+
+                    val positionMs = controller.currentPosition
+                    val updatedEpisode = episode.copy(
+                        localFilePath = filePath,
+                        downloadStatus = DownloadStatus.DOWNLOADED
+                    )
+                    val localMediaItem = EpisodeMediaItemMapper.toMediaItem(updatedEpisode)
+                    controller.setMediaItem(localMediaItem, positionMs)
+                    controller.prepare()
+                    controller.play()
+
+                    currentEpisode = updatedEpisode
+                    _playbackState.update { it.copy(currentEpisode = updatedEpisode) }
+                    true
+                }
         }
     }
 

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +35,9 @@ fun EpisodeListItem(
     podcastArtworkUrl: String? = null,
     onPlayClick: () -> Unit,
     onDownloadClick: () -> Unit,
+    onCancelDownloadClick: () -> Unit = {},
+    onDeleteDownloadClick: () -> Unit = {},
+    downloadProgress: Float? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -69,13 +71,13 @@ fun EpisodeListItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        IconButton(onClick = onDownloadClick) {
-            Icon(
-                imageVector = Icons.Default.Download,
-                contentDescription = "Download",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        DownloadButton(
+            downloadStatus = episode.downloadStatus,
+            downloadProgress = downloadProgress,
+            onDownloadClick = onDownloadClick,
+            onCancelClick = onCancelDownloadClick,
+            onDeleteClick = onDeleteDownloadClick
+        )
         IconButton(onClick = onPlayClick) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,

@@ -51,6 +51,10 @@ fun PodcastDetailScreen(
     podcastId: Long,
     onBackClick: () -> Unit,
     onEpisodePlayClick: (Episode) -> Unit,
+    onEpisodeDownloadClick: (Episode) -> Unit,
+    onCancelDownloadClick: (Long) -> Unit,
+    onDeleteDownloadClick: (Long) -> Unit,
+    downloadProgressMap: Map<Long, Int> = emptyMap(),
     modifier: Modifier = Modifier,
     viewModel: PodcastDetailViewModel = hiltViewModel()
 ) {
@@ -122,7 +126,10 @@ fun PodcastDetailScreen(
                             episode = episode,
                             podcastArtworkUrl = podcast.artworkUrl,
                             onPlayClick = { onEpisodePlayClick(episode) },
-                            onDownloadClick = { },
+                            onDownloadClick = { onEpisodeDownloadClick(episode) },
+                            onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
+                            onDeleteDownloadClick = { onDeleteDownloadClick(episode.id) },
+                            downloadProgress = downloadProgressMap[episode.id]?.let { it / 100f },
                             onClick = { }
                         )
                     }

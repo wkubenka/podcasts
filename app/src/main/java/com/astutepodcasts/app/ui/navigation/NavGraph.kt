@@ -36,6 +36,7 @@ fun AppNavGraph(
     val currentRoute = navBackStackEntry?.destination?.route
 
     val playbackState by mainViewModel.playbackState.collectAsStateWithLifecycle()
+    val downloadProgress by mainViewModel.downloadProgress.collectAsStateWithLifecycle()
     val showMiniPlayer = playbackState.currentEpisode != null
         && currentRoute != Screen.NowPlaying.route
 
@@ -89,7 +90,17 @@ fun AppNavGraph(
                         },
                         onEpisodePlayClick = { episode ->
                             mainViewModel.play(episode)
-                        }
+                        },
+                        onEpisodeDownloadClick = { episode ->
+                            mainViewModel.downloadEpisode(episode)
+                        },
+                        onCancelDownloadClick = { episodeId ->
+                            mainViewModel.cancelDownload(episodeId)
+                        },
+                        onDeleteDownloadClick = { episodeId ->
+                            mainViewModel.deleteDownload(episodeId)
+                        },
+                        downloadProgressMap = downloadProgress
                     )
                 }
                 composable(Screen.Search.route) {
@@ -101,7 +112,9 @@ fun AppNavGraph(
                 }
                 composable(Screen.Downloads.route) {
                     DownloadsScreen(
-                        onEpisodePlayClick = { }
+                        onEpisodePlayClick = { episode ->
+                            mainViewModel.play(episode)
+                        }
                     )
                 }
                 composable(
@@ -114,7 +127,17 @@ fun AppNavGraph(
                         onBackClick = { navController.popBackStack() },
                         onEpisodePlayClick = { episode ->
                             mainViewModel.play(episode)
-                        }
+                        },
+                        onEpisodeDownloadClick = { episode ->
+                            mainViewModel.downloadEpisode(episode)
+                        },
+                        onCancelDownloadClick = { episodeId ->
+                            mainViewModel.cancelDownload(episodeId)
+                        },
+                        onDeleteDownloadClick = { episodeId ->
+                            mainViewModel.deleteDownload(episodeId)
+                        },
+                        downloadProgressMap = downloadProgress
                     )
                 }
                 composable(Screen.NowPlaying.route) {
