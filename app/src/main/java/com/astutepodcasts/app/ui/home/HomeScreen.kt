@@ -36,8 +36,8 @@ fun HomeScreen(
     onEpisodeDownloadClick: (Episode) -> Unit,
     onCancelDownloadClick: (Long) -> Unit,
     onDeleteDownloadClick: (Long) -> Unit,
-    downloadProgressMap: Map<Long, Int> = emptyMap(),
     modifier: Modifier = Modifier,
+    downloadProgressMap: Map<Long, Int> = emptyMap(),
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
