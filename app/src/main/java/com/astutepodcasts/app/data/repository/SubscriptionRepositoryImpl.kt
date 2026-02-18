@@ -4,9 +4,11 @@ import com.astutepodcasts.app.data.local.dao.EpisodeDao
 import com.astutepodcasts.app.data.local.dao.PodcastDao
 import com.astutepodcasts.app.data.local.dao.SubscriptionDao
 import com.astutepodcasts.app.data.local.entity.SubscriptionEntity
+import com.astutepodcasts.app.data.mapper.EpisodeIdGenerator
 import com.astutepodcasts.app.data.mapper.toDomain
 import com.astutepodcasts.app.data.mapper.toEntity
-import com.astutepodcasts.app.data.remote.PodcastIndexApi
+import com.astutepodcasts.app.data.remote.RssFeedParser
+import com.astutepodcasts.app.data.remote.RssFeedService
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.Podcast
 import com.astutepodcasts.app.domain.repository.SubscriptionRepository
@@ -20,7 +22,9 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private val podcastDao: PodcastDao,
     private val episodeDao: EpisodeDao,
     private val subscriptionDao: SubscriptionDao,
-    private val api: PodcastIndexApi
+    private val rssFeedService: RssFeedService,
+    private val rssFeedParser: RssFeedParser,
+    private val episodeIdGenerator: EpisodeIdGenerator
 ) : SubscriptionRepository {
 
     override fun getSubscribedPodcasts(): Flow<List<Podcast>> {
@@ -55,19 +59,30 @@ class SubscriptionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun refreshFeeds() {
-        val podcastIds = subscriptionDao.getAllSubscribedPodcastIds()
+        val feedInfos = podcastDao.getSubscribedPodcastFeedInfos()
         var failureCount = 0
-        for (podcastId in podcastIds) {
+        for (feedInfo in feedInfos) {
             try {
-                val episodes = api.getEpisodesByFeedId(podcastId).items
-                    .map { it.toDomain(overridePodcastId = podcastId) }
-                episodeDao.upsertAllPreservingDownloadStatus(episodes.map { it.toEntity() })
+                val xml = rssFeedService.fetchFeed(feedInfo.feedUrl)
+                val podcast = podcastDao.getById(feedInfo.id)
+                val parsed = rssFeedParser.parse(xml, feedInfo.id, podcast?.artworkUrl)
+                val resolved = resolveEpisodeIds(feedInfo.id, parsed)
+                episodeDao.upsertAllPreservingDownloadStatus(resolved.map { it.toEntity() })
             } catch (_: Exception) {
                 failureCount++
             }
         }
-        if (failureCount > 0 && failureCount == podcastIds.size) {
+        if (failureCount > 0 && failureCount == feedInfos.size) {
             throw Exception("Failed to refresh feeds. Check your connection.")
+        }
+    }
+
+    private suspend fun resolveEpisodeIds(podcastId: Long, episodes: List<Episode>): List<Episode> {
+        val existing = episodeDao.getEpisodeIdsByAudioUrl(podcastId)
+        val urlToId = existing.associate { it.audioUrl to it.id }
+        return episodes.map { episode ->
+            val existingId = urlToId[episode.audioUrl]
+            episode.copy(id = existingId ?: episodeIdGenerator.generateId(episode.audioUrl))
         }
     }
 }

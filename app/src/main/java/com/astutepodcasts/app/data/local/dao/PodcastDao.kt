@@ -7,6 +7,8 @@ import androidx.room.Query
 import com.astutepodcasts.app.data.local.entity.PodcastEntity
 import kotlinx.coroutines.flow.Flow
 
+data class PodcastFeedInfo(val id: Long, val feedUrl: String)
+
 @Dao
 interface PodcastDao {
 
@@ -27,4 +29,12 @@ interface PodcastDao {
         """
     )
     fun getSubscribedPodcasts(): Flow<List<PodcastEntity>>
+
+    @Query(
+        """
+        SELECT p.id, p.feedUrl FROM podcasts p
+        INNER JOIN subscriptions s ON p.id = s.podcastId
+        """
+    )
+    suspend fun getSubscribedPodcastFeedInfos(): List<PodcastFeedInfo>
 }

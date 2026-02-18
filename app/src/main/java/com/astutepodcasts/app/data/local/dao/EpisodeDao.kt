@@ -8,6 +8,8 @@ import androidx.room.Transaction
 import com.astutepodcasts.app.data.local.entity.EpisodeEntity
 import kotlinx.coroutines.flow.Flow
 
+data class EpisodeIdAudioUrl(val id: Long, val audioUrl: String)
+
 @Dao
 interface EpisodeDao {
 
@@ -92,4 +94,7 @@ interface EpisodeDao {
         """
     )
     fun getRecentlyPlayed(): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT id, audioUrl FROM episodes WHERE podcastId = :podcastId")
+    suspend fun getEpisodeIdsByAudioUrl(podcastId: Long): List<EpisodeIdAudioUrl>
 }
