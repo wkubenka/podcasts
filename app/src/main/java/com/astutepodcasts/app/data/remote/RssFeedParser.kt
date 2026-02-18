@@ -93,7 +93,7 @@ class RssFeedParser @Inject constructor() {
                                     id = 0,
                                     podcastId = podcastId,
                                     title = title,
-                                    description = stripHtml(description),
+                                    description = description,
                                     audioUrl = audioUrl,
                                     artworkUrl = imageUrl ?: podcastArtworkUrl,
                                     publishedAt = pubDate,
@@ -152,9 +152,5 @@ class RssFeedParser @Inject constructor() {
             }
             else -> 0
         }
-    }
-
-    private fun stripHtml(html: String): String {
-        return html.replace(Regex("<[^>]*>"), "").trim()
     }
 }

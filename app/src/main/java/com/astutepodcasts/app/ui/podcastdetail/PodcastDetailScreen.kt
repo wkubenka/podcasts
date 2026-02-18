@@ -44,6 +44,7 @@ import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.Podcast
 import com.astutepodcasts.app.ui.components.EpisodeListItem
 import com.astutepodcasts.app.ui.components.EpisodeListItemPlaceholder
+import com.astutepodcasts.app.ui.components.HtmlText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,8 +172,8 @@ private fun PodcastHeader(
             )
             Spacer(modifier = Modifier.height(8.dp))
             var descriptionExpanded by remember { mutableStateOf(false) }
-            Text(
-                text = podcast.description,
+            HtmlText(
+                html = podcast.description,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = if (descriptionExpanded) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
