@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay10
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -20,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +38,11 @@ fun MiniPlayer(
     podcastTitle: String,
     artworkUrl: String?,
     isPlaying: Boolean,
+    isBuffering: Boolean,
     progress: Float,
+    onSkipBackwardClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
+    onSkipForwardClick: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -83,10 +90,36 @@ fun MiniPlayer(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                IconButton(onClick = onPlayPauseClick) {
+                IconButton(onClick = onSkipBackwardClick) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play"
+                        imageVector = Icons.Default.Replay10,
+                        contentDescription = "Rewind 10 seconds",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                if (isBuffering) {
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                } else {
+                    IconButton(onClick = onPlayPauseClick) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Play"
+                        )
+                    }
+                }
+                IconButton(onClick = onSkipForwardClick) {
+                    Icon(
+                        imageVector = Icons.Default.Forward30,
+                        contentDescription = "Forward 30 seconds",
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
