@@ -81,22 +81,23 @@ fun HomeScreen(
 
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         item {
-                            Text(
-                                text = "Your Podcasts",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                        item {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Text(
+                                    text = "Your Podcasts",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 FilterChip(
                                     selected = uiState.sortOrder == PodcastSortOrder.RECENT_EPISODES,
                                     onClick = { viewModel.setSortOrder(PodcastSortOrder.RECENT_EPISODES) },
                                     label = { Text("Recent") }
                                 )
+                                Spacer(modifier = Modifier.padding(start = 8.dp))
                                 FilterChip(
                                     selected = uiState.sortOrder == PodcastSortOrder.ALPHABETICAL,
                                     onClick = { viewModel.setSortOrder(PodcastSortOrder.ALPHABETICAL) },
