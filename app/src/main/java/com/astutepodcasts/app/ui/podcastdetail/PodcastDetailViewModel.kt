@@ -25,8 +25,12 @@ data class PodcastDetailUiState(
     val episodes: List<Episode> = emptyList(),
     val isLoading: Boolean = false,
     val isSubscribed: Boolean = false,
-    val error: String? = null
-)
+    val error: String? = null,
+    val showArchived: Boolean = false
+) {
+    val filteredEpisodes: List<Episode>
+        get() = if (showArchived) episodes else episodes.filter { !it.isArchived }
+}
 
 @HiltViewModel
 class PodcastDetailViewModel @Inject constructor(
@@ -66,7 +70,8 @@ class PodcastDetailViewModel @Inject constructor(
                             statusMap[episode.id]?.let { roomEp ->
                                 episode.copy(
                                     downloadStatus = roomEp.downloadStatus,
-                                    localFilePath = roomEp.localFilePath
+                                    localFilePath = roomEp.localFilePath,
+                                    isArchived = roomEp.isArchived
                                 )
                             } ?: episode
                         }
@@ -79,6 +84,22 @@ class PodcastDetailViewModel @Inject constructor(
 
     fun retry() {
         load()
+    }
+
+    fun toggleShowArchived() {
+        _uiState.update { it.copy(showArchived = !it.showArchived) }
+    }
+
+    fun archiveEpisode(episodeId: Long) {
+        viewModelScope.launch {
+            episodeRepository.setArchived(episodeId, true)
+        }
+    }
+
+    fun unarchiveEpisode(episodeId: Long) {
+        viewModelScope.launch {
+            episodeRepository.setArchived(episodeId, false)
+        }
     }
 
     fun toggleSubscription() {
@@ -111,7 +132,8 @@ class PodcastDetailViewModel @Inject constructor(
                     localStatusMap[episode.id]?.let { local ->
                         episode.copy(
                             downloadStatus = local.downloadStatus,
-                            localFilePath = local.localFilePath
+                            localFilePath = local.localFilePath,
+                            isArchived = local.isArchived
                         )
                     } ?: episode
                 }

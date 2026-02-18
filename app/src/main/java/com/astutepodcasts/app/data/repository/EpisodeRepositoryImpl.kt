@@ -7,6 +7,7 @@ import com.astutepodcasts.app.data.mapper.toDomain
 import com.astutepodcasts.app.data.remote.RssFeedParser
 import com.astutepodcasts.app.data.remote.RssFeedService
 import com.astutepodcasts.app.domain.model.Episode
+import com.astutepodcasts.app.domain.repository.DownloadRepository
 import com.astutepodcasts.app.domain.repository.EpisodeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,7 +20,8 @@ class EpisodeRepositoryImpl @Inject constructor(
     private val podcastDao: PodcastDao,
     private val rssFeedService: RssFeedService,
     private val rssFeedParser: RssFeedParser,
-    private val episodeIdGenerator: EpisodeIdGenerator
+    private val episodeIdGenerator: EpisodeIdGenerator,
+    private val downloadRepository: DownloadRepository
 ) : EpisodeRepository {
 
     override suspend fun getEpisodesForPodcast(feedId: Long): List<Episode> {
@@ -43,6 +45,13 @@ class EpisodeRepositoryImpl @Inject constructor(
     override fun getRecentlyPlayedEpisodes(): Flow<List<Episode>> {
         return episodeDao.getRecentlyPlayed().map { entities ->
             entities.map { it.toDomain() }
+        }
+    }
+
+    override suspend fun setArchived(episodeId: Long, archived: Boolean) {
+        episodeDao.updateArchived(episodeId, archived)
+        if (archived) {
+            downloadRepository.deleteDownload(episodeId)
         }
     }
 

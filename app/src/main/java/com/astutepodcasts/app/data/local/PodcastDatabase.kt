@@ -13,7 +13,7 @@ import com.astutepodcasts.app.data.local.entity.SubscriptionEntity
 
 @Database(
     entities = [PodcastEntity::class, EpisodeEntity::class, SubscriptionEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class PodcastDatabase : RoomDatabase() {
@@ -26,6 +26,12 @@ abstract class PodcastDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE episodes ADD COLUMN lastPlayedPositionMs INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE episodes ADD COLUMN lastPlayedAt INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE episodes ADD COLUMN isArchived INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

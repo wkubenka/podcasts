@@ -18,8 +18,8 @@ interface EpisodeDao {
 
     @Query(
         """
-        INSERT INTO episodes (id, podcastId, title, description, audioUrl, artworkUrl, publishedAt, durationSeconds, fileSize, episodeNumber, seasonNumber, downloadStatus, localFilePath, lastPlayedPositionMs, lastPlayedAt)
-        VALUES (:id, :podcastId, :title, :description, :audioUrl, :artworkUrl, :publishedAt, :durationSeconds, :fileSize, :episodeNumber, :seasonNumber, 'NOT_DOWNLOADED', NULL, 0, 0)
+        INSERT INTO episodes (id, podcastId, title, description, audioUrl, artworkUrl, publishedAt, durationSeconds, fileSize, episodeNumber, seasonNumber, downloadStatus, localFilePath, lastPlayedPositionMs, lastPlayedAt, isArchived)
+        VALUES (:id, :podcastId, :title, :description, :audioUrl, :artworkUrl, :publishedAt, :durationSeconds, :fileSize, :episodeNumber, :seasonNumber, 'NOT_DOWNLOADED', NULL, 0, 0, 0)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             description = excluded.description,
@@ -59,6 +59,7 @@ interface EpisodeDao {
         """
         SELECT e.* FROM episodes e
         INNER JOIN subscriptions s ON e.podcastId = s.podcastId
+        WHERE e.isArchived = 0
         ORDER BY e.publishedAt DESC
         LIMIT :limit
         """
@@ -89,6 +90,7 @@ interface EpisodeDao {
         WHERE lastPlayedAt > 0
             AND lastPlayedPositionMs > 0
             AND (durationSeconds = 0 OR lastPlayedPositionMs < durationSeconds * 1000)
+            AND isArchived = 0
         ORDER BY lastPlayedAt DESC
         LIMIT 10
         """
@@ -97,4 +99,7 @@ interface EpisodeDao {
 
     @Query("SELECT id, audioUrl FROM episodes WHERE podcastId = :podcastId")
     suspend fun getEpisodeIdsByAudioUrl(podcastId: Long): List<EpisodeIdAudioUrl>
+
+    @Query("UPDATE episodes SET isArchived = :isArchived WHERE id = :episodeId")
+    suspend fun updateArchived(episodeId: Long, isArchived: Boolean)
 }

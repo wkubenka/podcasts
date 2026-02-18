@@ -236,6 +236,8 @@ class PlaybackManager @Inject constructor(
                 positionMs = 0,
                 lastPlayedAt = 0
             )
+            // Auto-archive finished episode
+            episodeDao.updateArchived(episode.id, true)
         }
 
         // Stop playback and clear state

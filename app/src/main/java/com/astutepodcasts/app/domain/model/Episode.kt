@@ -15,5 +15,6 @@ data class Episode(
     val downloadStatus: DownloadStatus = DownloadStatus.NOT_DOWNLOADED,
     val localFilePath: String? = null,
     val lastPlayedPositionMs: Long = 0,
-    val lastPlayedAt: Long = 0
+    val lastPlayedAt: Long = 0,
+    val isArchived: Boolean = false
 )

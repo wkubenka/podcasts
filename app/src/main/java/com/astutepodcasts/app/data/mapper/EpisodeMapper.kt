@@ -19,7 +19,8 @@ fun Episode.toEntity(): EpisodeEntity = EpisodeEntity(
     downloadStatus = downloadStatus.name,
     localFilePath = localFilePath,
     lastPlayedPositionMs = lastPlayedPositionMs,
-    lastPlayedAt = lastPlayedAt
+    lastPlayedAt = lastPlayedAt,
+    isArchived = isArchived
 )
 
 fun EpisodeEntity.toDomain(): Episode = Episode(
@@ -37,5 +38,6 @@ fun EpisodeEntity.toDomain(): Episode = Episode(
     downloadStatus = DownloadStatus.valueOf(downloadStatus),
     localFilePath = localFilePath,
     lastPlayedPositionMs = lastPlayedPositionMs,
-    lastPlayedAt = lastPlayedAt
+    lastPlayedAt = lastPlayedAt,
+    isArchived = isArchived
 )

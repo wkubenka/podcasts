@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +41,8 @@ fun EpisodeListItem(
     onCancelDownloadClick: () -> Unit = {},
     onDeleteDownloadClick: () -> Unit = {},
     downloadProgress: Float? = null,
+    onArchiveClick: (() -> Unit)? = null,
+    onUnarchiveClick: (() -> Unit)? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -45,7 +50,8 @@ fun EpisodeListItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .then(if (episode.isArchived) Modifier.alpha(0.5f) else Modifier),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -70,6 +76,24 @@ fun EpisodeListItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+        if (onArchiveClick != null) {
+            IconButton(onClick = onArchiveClick) {
+                Icon(
+                    imageVector = Icons.Default.Archive,
+                    contentDescription = "Archive ${episode.title}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (onUnarchiveClick != null) {
+            IconButton(onClick = onUnarchiveClick) {
+                Icon(
+                    imageVector = Icons.Default.Unarchive,
+                    contentDescription = "Unarchive ${episode.title}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         DownloadButton(
             downloadStatus = episode.downloadStatus,

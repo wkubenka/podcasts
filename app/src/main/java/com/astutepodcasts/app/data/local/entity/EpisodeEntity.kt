@@ -32,5 +32,6 @@ data class EpisodeEntity(
     val downloadStatus: String,
     val localFilePath: String?,
     val lastPlayedPositionMs: Long = 0,
-    val lastPlayedAt: Long = 0
+    val lastPlayedAt: Long = 0,
+    val isArchived: Boolean = false
 )

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -115,13 +116,25 @@ fun PodcastDetailScreen(
                     }
                     item {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        Text(
-                            text = "Episodes (${uiState.episodes.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Episodes (${uiState.filteredEpisodes.size})",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = uiState.showArchived,
+                                onClick = viewModel::toggleShowArchived,
+                                label = { Text("Show archived") }
+                            )
+                        }
                     }
-                    items(uiState.episodes) { episode ->
+                    items(uiState.filteredEpisodes) { episode ->
                         EpisodeListItem(
                             episode = episode,
                             podcastArtworkUrl = podcast.artworkUrl,
@@ -130,6 +143,8 @@ fun PodcastDetailScreen(
                             onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
                             onDeleteDownloadClick = { onDeleteDownloadClick(episode.id) },
                             downloadProgress = downloadProgressMap[episode.id]?.let { it / 100f },
+                            onArchiveClick = if (episode.isArchived) null else { { viewModel.archiveEpisode(episode.id) } },
+                            onUnarchiveClick = if (episode.isArchived) { { viewModel.unarchiveEpisode(episode.id) } } else null,
                             onClick = { }
                         )
                     }
