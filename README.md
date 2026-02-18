@@ -5,9 +5,10 @@ A native Android podcast player built with Kotlin and Jetpack Compose. Search an
 ## Features
 
 - **Discover** - Search podcasts and browse trending shows via the [Podcast Index](https://podcastindex.org/) open directory
-- **Subscribe** - Build your library and stay up to date with new episodes
-- **Listen** - Background audio playback with notification and lock screen controls, adjustable playback speed (0.5x-2x), and skip forward/back
-- **Download** - Save episodes for offline listening with progress tracking and download management
+- **Subscribe** - Build your library and stay up to date with new episodes via direct RSS feed parsing
+- **Listen** - Background audio playback with notification and lock screen controls, adjustable playback speed (0.5x-2x), skip forward/back, and playback position persistence
+- **Download** - Save episodes for offline listening with auto-download on play, progress tracking, and download management
+- **Archive** - Finished episodes auto-archive to keep your feed focused on unplayed content, with manual archive/unarchive and a toggle to show hidden episodes
 - **Material You** - Dynamic color theming on Android 12+ with full dark mode support
 
 ## Screenshots
@@ -25,7 +26,7 @@ A native Android podcast player built with Kotlin and Jetpack Compose. Search an
 | **Database** | Room |
 | **Audio** | Media3 / ExoPlayer |
 | **Networking** | Retrofit + OkHttp |
-| **API** | [Podcast Index](https://api.podcastindex.org/) |
+| **API** | [Podcast Index](https://api.podcastindex.org/) + direct RSS feed parsing |
 | **Images** | Coil |
 | **Downloads** | WorkManager |
 

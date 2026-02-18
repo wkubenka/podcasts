@@ -20,7 +20,7 @@ Establish the Android project from scratch with a full Gradle build system, Mate
 
 ---
 
-## Phase 2: Podcast Index API & Search
+## Phase 2: Podcast Index API & Search **[COMPLETE]**
 
 Replace placeholder data on the Search and Podcast Detail screens with real results from the Podcast Index API.
 
@@ -44,7 +44,7 @@ PODCAST_INDEX_API_SECRET=your_secret_here
 
 ---
 
-## Phase 3: Local Database & Subscriptions
+## Phase 3: Local Database & Subscriptions **[COMPLETE]**
 
 Add a Room database so users can subscribe to podcasts and see them on the Home screen, persisted across app restarts.
 
@@ -61,7 +61,7 @@ Add a Room database so users can subscribe to podcasts and see them on the Home 
 
 ---
 
-## Phase 4: Audio Playback
+## Phase 4: Audio Playback **[COMPLETE]**
 
 Implement full audio playback with a background service, media notification, lock screen controls, and the Now Playing UI.
 
@@ -79,7 +79,7 @@ Implement full audio playback with a background service, media notification, loc
 
 ---
 
-## Phase 5: Episode Downloads
+## Phase 5: Episode Downloads **[COMPLETE]**
 
 Allow downloading episodes for offline playback, with progress tracking and download management.
 
@@ -96,7 +96,7 @@ Allow downloading episodes for offline playback, with progress tracking and down
 
 ---
 
-## Phase 6: Polish & Production Readiness
+## Phase 6: Polish & Production Readiness **[COMPLETE]**
 
 Harden the app for real-world use with error handling, UX improvements, and release preparation.
 
@@ -115,3 +115,14 @@ Harden the app for real-world use with error handling, UX improvements, and rele
 - Dark mode testing and edge case fixes
 
 **How to verify:** Use the app end-to-end: search, subscribe, play, download, go offline, come back online. No crashes, clear error messages, smooth transitions.
+
+---
+
+## Post-Phase Enhancements **[COMPLETE]**
+
+Additional features and improvements built after the core phases.
+
+**What was built:**
+- **Direct RSS feed parsing** - Episode refresh switched from Podcast Index API to parsing RSS feeds directly via `RssFeedService` and `RssFeedParser`, providing more reliable and up-to-date episode data
+- **Native HTML descriptions** - Podcast and episode descriptions rendered natively using `AnnotatedString.fromHtml()` instead of plain text stripping
+- **Archive played episodes** - Episodes auto-archive when playback finishes, hiding them from the podcast detail feed and home screen. Manual archive/unarchive via icon buttons. "Show archived" filter chip toggle on the podcast detail screen. Archiving cleans up associated downloads. Database migration (v2→v3) adds `isArchived` column

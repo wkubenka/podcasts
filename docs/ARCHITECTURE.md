@@ -14,7 +14,7 @@ Astute Podcasts is a native Android app built with Kotlin and Jetpack Compose. I
 | DI | Hilt (Dagger) | Compile-time dependency injection |
 | Database | Room | Local SQLite for subscriptions, episodes, downloads |
 | Audio | Media3 (ExoPlayer + MediaSession) | Background playback, notifications, lock screen |
-| Networking | Retrofit + OkHttp | HTTP client for Podcast Index API |
+| Networking | Retrofit + OkHttp | HTTP client for Podcast Index API and RSS feeds |
 | Serialization | Kotlinx Serialization | JSON parsing for API responses |
 | Images | Coil | Async image loading with Compose integration |
 | Background work | WorkManager | Reliable episode downloads |
@@ -43,7 +43,7 @@ com.astutepodcasts.app/
 │
 ├── data/                      Android-dependent implementations
 │   ├── local/                 Room database, DAOs, entities, type converters
-│   ├── remote/                Retrofit API service, DTOs, auth interceptor
+│   ├── remote/                Retrofit API service, DTOs, auth interceptor, RSS feed parser
 │   ├── repository/            Repository implementations (orchestrate local + remote)
 │   ├── mapper/                Conversion functions between DTO, entity, and domain model
 │   └── worker/                WorkManager workers (episode downloads)
@@ -134,6 +134,16 @@ Every request to `https://api.podcastindex.org/api/1.0/` requires these headers,
 | `Authorization` | SHA-1 hex digest of `apiKey + apiSecret + timestamp` |
 
 API credentials are stored in `local.properties` (git-ignored) and injected at build time via `BuildConfig` fields.
+
+## Episode Lifecycle
+
+Episodes follow a lifecycle from discovery through archival:
+
+1. **Discovery** - Episodes are fetched by parsing RSS feeds directly (`RssFeedService` + `RssFeedParser`), with podcast search/trending via the Podcast Index API
+2. **Subscription** - On subscribe, episode metadata is cached locally in Room. The upsert query preserves download status and archive state across refreshes.
+3. **Playback** - Playing an episode auto-downloads it. `PlaybackManager` saves position every ~10s and on pause. Position is restored on resume.
+4. **Completion** - When an episode finishes, `PlaybackManager.onEpisodeFinished()` clears playback position, deletes the download, and auto-archives the episode
+5. **Archival** - Archived episodes are hidden from the home feed, recently played, and the podcast detail episode list (unless "Show archived" is toggled). Users can manually archive/unarchive. Archiving cleans up associated downloads.
 
 ## Offline Strategy
 
