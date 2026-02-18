@@ -1,5 +1,6 @@
 package com.astutepodcasts.app.ui.podcastdetail
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,9 +13,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,11 +31,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.animation.animateContentSize
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.Podcast
@@ -44,15 +51,20 @@ fun PodcastDetailScreen(
     podcastId: Long,
     onBackClick: () -> Unit,
     onEpisodePlayClick: (Episode) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: PodcastDetailViewModel = hiltViewModel()
 ) {
-    val podcast = samplePodcast(podcastId)
-    val episodes = sampleEpisodes(podcastId)
-    var isSubscribed by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text(podcast.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            title = {
+                Text(
+                    uiState.podcast?.title ?: "",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -60,30 +72,62 @@ fun PodcastDetailScreen(
             }
         )
 
-        LazyColumn {
-            item {
-                PodcastHeader(
-                    podcast = podcast,
-                    isSubscribed = isSubscribed,
-                    onSubscribeClick = { isSubscribed = !isSubscribed }
-                )
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                Text(
-                    text = "Episodes (${episodes.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = uiState.error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        Button(onClick = viewModel::retry) {
+                            Text("Retry")
+                        }
+                    }
+                }
             }
-            items(episodes) { episode ->
-                EpisodeListItem(
-                    episode = episode,
-                    podcastArtworkUrl = podcast.artworkUrl,
-                    onPlayClick = { onEpisodePlayClick(episode) },
-                    onDownloadClick = { },
-                    onClick = { }
-                )
+            uiState.podcast != null -> {
+                val podcast = uiState.podcast!!
+                var isSubscribed by remember { mutableStateOf(false) }
+
+                LazyColumn {
+                    item {
+                        PodcastHeader(
+                            podcast = podcast,
+                            isSubscribed = isSubscribed,
+                            onSubscribeClick = { isSubscribed = !isSubscribed }
+                        )
+                    }
+                    item {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            text = "Episodes (${uiState.episodes.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(uiState.episodes) { episode ->
+                        EpisodeListItem(
+                            episode = episode,
+                            podcastArtworkUrl = podcast.artworkUrl,
+                            onPlayClick = { onEpisodePlayClick(episode) },
+                            onDownloadClick = { },
+                            onClick = { }
+                        )
+                    }
+                }
             }
         }
     }
@@ -121,12 +165,16 @@ private fun PodcastHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
+            var descriptionExpanded by remember { mutableStateOf(false) }
             Text(
                 text = podcast.description,
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 3,
+                maxLines = if (descriptionExpanded) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .animateContentSize()
+                    .clickable { descriptionExpanded = !descriptionExpanded }
             )
             Spacer(modifier = Modifier.height(12.dp))
             if (isSubscribed) {
@@ -141,23 +189,3 @@ private fun PodcastHeader(
         }
     }
 }
-
-private fun samplePodcast(id: Long) = Podcast(
-    id = id,
-    title = "Sample Podcast",
-    author = "Sample Author",
-    description = "This is a sample podcast description that tells you about the show and what to expect from each episode.",
-    artworkUrl = null,
-    feedUrl = "",
-    language = "en",
-    episodeCount = 5,
-    lastUpdateTime = 0
-)
-
-private fun sampleEpisodes(podcastId: Long) = listOf(
-    Episode(100, podcastId, "Episode 5: The Latest", "Most recent episode", "", null, 1708300000, 2400, 0, 5, 1),
-    Episode(101, podcastId, "Episode 4: Deep Dive", "An in-depth look", "", null, 1708200000, 3600, 0, 4, 1),
-    Episode(102, podcastId, "Episode 3: Interview", "Special guest interview", "", null, 1708100000, 2700, 0, 3, 1),
-    Episode(103, podcastId, "Episode 2: The Basics", "Foundation concepts", "", null, 1708000000, 1800, 0, 2, 1),
-    Episode(104, podcastId, "Episode 1: Introduction", "Welcome to the show", "", null, 1707900000, 1200, 0, 1, 1),
-)

@@ -1,6 +1,7 @@
 package com.astutepodcasts.app.ui.search
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,15 +25,14 @@ import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Podcast
 
@@ -39,20 +40,18 @@ import com.astutepodcasts.app.domain.model.Podcast
 @Composable
 fun SearchScreen(
     onPodcastClick: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: SearchViewModel = hiltViewModel()
 ) {
-    var query by remember { mutableStateOf("") }
-    var isActive by remember { mutableStateOf(false) }
-
-    val trendingPodcasts = sampleTrendingPodcasts()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
         SearchBar(
             inputField = {
                 SearchBarDefaults.InputField(
-                    query = query,
-                    onQueryChange = { query = it },
-                    onSearch = { isActive = false },
+                    query = uiState.query,
+                    onQueryChange = viewModel::onQueryChange,
+                    onSearch = { },
                     expanded = false,
                     onExpandedChange = { },
                     placeholder = { Text("Search podcasts...") },
@@ -71,17 +70,41 @@ fun SearchScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = if (query.isBlank()) "Trending Podcasts" else "Search Results",
+            text = if (uiState.isShowingTrending) "Trending Podcasts" else "Search Results",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        LazyColumn {
-            items(trendingPodcasts) { podcast ->
-                SearchResultItem(
-                    podcast = podcast,
-                    onClick = { onPodcastClick(podcast.id) }
-                )
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            else -> {
+                LazyColumn {
+                    items(uiState.results) { podcast ->
+                        SearchResultItem(
+                            podcast = podcast,
+                            onClick = { onPodcastClick(podcast.id) }
+                        )
+                    }
+                }
             }
         }
     }
@@ -121,19 +144,13 @@ private fun SearchResultItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "${podcast.episodeCount} episodes",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (podcast.episodeCount > 0) {
+                Text(
+                    text = "${podcast.episodeCount} episodes",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
-
-private fun sampleTrendingPodcasts() = listOf(
-    Podcast(10, "Huberman Lab", "Andrew Huberman", "Science-based tools for everyday life", null, "", "en", 200, 0),
-    Podcast(11, "Lex Fridman Podcast", "Lex Fridman", "Conversations about science and technology", null, "", "en", 400, 0),
-    Podcast(12, "The Joe Rogan Experience", "Joe Rogan", "Long-form conversations", null, "", "en", 2000, 0),
-    Podcast(13, "Acquired", "Ben Gilbert & David Rosenthal", "The greatest business stories", null, "", "en", 150, 0),
-    Podcast(14, "Hardcore History", "Dan Carlin", "In-depth history deep dives", null, "", "en", 70, 0),
-)

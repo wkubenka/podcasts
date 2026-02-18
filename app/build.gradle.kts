@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+}
+
+val localProperties = Properties()
+rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use {
+    localProperties.load(it)
 }
 
 android {
@@ -21,12 +28,12 @@ android {
         buildConfigField(
             "String",
             "PODCAST_INDEX_API_KEY",
-            "\"${project.findProperty("PODCAST_INDEX_API_KEY") ?: ""}\""
+            "\"${localProperties.getProperty("PODCAST_INDEX_API_KEY", "")}\""
         )
         buildConfigField(
             "String",
             "PODCAST_INDEX_API_SECRET",
-            "\"${project.findProperty("PODCAST_INDEX_API_SECRET") ?: ""}\""
+            "\"${localProperties.getProperty("PODCAST_INDEX_API_SECRET", "")}\""
         )
     }
 

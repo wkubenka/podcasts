@@ -1,0 +1,21 @@
+package com.astutepodcasts.app.di
+
+import com.astutepodcasts.app.data.repository.EpisodeRepositoryImpl
+import com.astutepodcasts.app.data.repository.PodcastRepositoryImpl
+import com.astutepodcasts.app.domain.repository.EpisodeRepository
+import com.astutepodcasts.app.domain.repository.PodcastRepository
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+
+    @Binds
+    abstract fun bindPodcastRepository(impl: PodcastRepositoryImpl): PodcastRepository
+
+    @Binds
+    abstract fun bindEpisodeRepository(impl: EpisodeRepositoryImpl): EpisodeRepository
+}
