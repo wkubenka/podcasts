@@ -16,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,10 +43,6 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Astute Podcasts") }
-        )
-
         if (uiState.subscribedPodcasts.isEmpty() && uiState.continueListening.isEmpty()) {
             EmptyHomeState(modifier = Modifier.fillMaxSize())
         } else {
