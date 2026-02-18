@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.Podcast
+import com.astutepodcasts.app.domain.repository.EpisodeRepository
 import com.astutepodcasts.app.domain.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.astutepodcasts.app.ui.toUserMessage
 
 enum class PodcastSortOrder {
     RECENT_EPISODES,
@@ -22,27 +24,42 @@ enum class PodcastSortOrder {
 data class HomeUiState(
     val subscribedPodcasts: List<Podcast> = emptyList(),
     val recentEpisodes: List<Episode> = emptyList(),
+    val continueListening: List<Episode> = emptyList(),
     val isRefreshing: Boolean = false,
-    val sortOrder: PodcastSortOrder = PodcastSortOrder.RECENT_EPISODES
+    val sortOrder: PodcastSortOrder = PodcastSortOrder.RECENT_EPISODES,
+    val error: String? = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val episodeRepository: EpisodeRepository
 ) : ViewModel() {
 
     private val isRefreshing = MutableStateFlow(false)
     private val sortOrder = MutableStateFlow(PodcastSortOrder.RECENT_EPISODES)
+    private val error = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HomeUiState> = combine(
         subscriptionRepository.getSubscribedPodcasts(),
         subscriptionRepository.getRecentEpisodes(),
+        episodeRepository.getRecentlyPlayedEpisodes(),
         isRefreshing,
-        sortOrder
-    ) { podcasts, episodes, refreshing, sort ->
+        sortOrder,
+        error
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val podcasts = values[0] as List<Podcast>
+        @Suppress("UNCHECKED_CAST")
+        val episodes = values[1] as List<Episode>
+        @Suppress("UNCHECKED_CAST")
+        val continueListening = values[2] as List<Episode>
+        val refreshing = values[3] as Boolean
+        val sort = values[4] as PodcastSortOrder
+        val errorMsg = values[5] as String?
+
         val sortedPodcasts = when (sort) {
             PodcastSortOrder.RECENT_EPISODES -> {
-                // Order podcasts by their most recent episode's publish time
                 val podcastOrderFromEpisodes = episodes
                     .map { it.podcastId }
                     .distinct()
@@ -61,8 +78,10 @@ class HomeViewModel @Inject constructor(
         HomeUiState(
             subscribedPodcasts = sortedPodcasts,
             recentEpisodes = episodes,
+            continueListening = continueListening,
             isRefreshing = refreshing,
-            sortOrder = sort
+            sortOrder = sort,
+            error = errorMsg
         )
     }.stateIn(
         scope = viewModelScope,
@@ -81,11 +100,18 @@ class HomeViewModel @Inject constructor(
     fun refreshFeeds() {
         viewModelScope.launch {
             isRefreshing.value = true
+            error.value = null
             try {
                 subscriptionRepository.refreshFeeds()
+            } catch (e: Exception) {
+                error.value = e.toUserMessage()
             } finally {
                 isRefreshing.value = false
             }
         }
+    }
+
+    fun clearError() {
+        error.value = null
     }
 }

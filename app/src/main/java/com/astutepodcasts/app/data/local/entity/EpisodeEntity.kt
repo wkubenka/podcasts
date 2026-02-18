@@ -30,5 +30,7 @@ data class EpisodeEntity(
     val episodeNumber: Int?,
     val seasonNumber: Int?,
     val downloadStatus: String,
-    val localFilePath: String?
+    val localFilePath: String?,
+    val lastPlayedPositionMs: Long = 0,
+    val lastPlayedAt: Long = 0
 )

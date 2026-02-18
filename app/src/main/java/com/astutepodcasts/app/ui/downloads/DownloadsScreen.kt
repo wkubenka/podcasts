@@ -85,7 +85,7 @@ private fun DownloadItem(
     ) {
         AsyncImage(
             model = episode.artworkUrl,
-            contentDescription = null,
+            contentDescription = episode.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(56.dp)

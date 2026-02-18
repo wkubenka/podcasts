@@ -68,7 +68,7 @@ fun MiniPlayer(
             ) {
                 AsyncImage(
                     model = artworkUrl,
-                    contentDescription = null,
+                    contentDescription = "Episode artwork",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(40.dp)

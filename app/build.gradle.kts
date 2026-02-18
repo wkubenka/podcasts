@@ -117,4 +117,7 @@ dependencies {
     // Core
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
+
+    // Splash Screen
+    implementation(libs.core.splashscreen)
 }

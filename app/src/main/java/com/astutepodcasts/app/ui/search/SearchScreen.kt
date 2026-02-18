@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Podcast
+import com.astutepodcasts.app.ui.components.SearchResultItemPlaceholder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,11 +78,10 @@ fun SearchScreen(
 
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                LazyColumn {
+                    items(6) {
+                        SearchResultItemPlaceholder()
+                    }
                 }
             }
             uiState.error != null -> {
@@ -89,11 +89,16 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = uiState.error!!,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = uiState.error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        Button(onClick = viewModel::retry) {
+                            Text("Retry")
+                        }
+                    }
                 }
             }
             else -> {
@@ -124,7 +129,7 @@ private fun SearchResultItem(
     ) {
         AsyncImage(
             model = podcast.artworkUrl,
-            contentDescription = null,
+            contentDescription = podcast.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(64.dp)

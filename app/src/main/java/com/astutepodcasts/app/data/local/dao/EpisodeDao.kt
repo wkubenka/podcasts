@@ -16,8 +16,8 @@ interface EpisodeDao {
 
     @Query(
         """
-        INSERT INTO episodes (id, podcastId, title, description, audioUrl, artworkUrl, publishedAt, durationSeconds, fileSize, episodeNumber, seasonNumber, downloadStatus, localFilePath)
-        VALUES (:id, :podcastId, :title, :description, :audioUrl, :artworkUrl, :publishedAt, :durationSeconds, :fileSize, :episodeNumber, :seasonNumber, 'NOT_DOWNLOADED', NULL)
+        INSERT INTO episodes (id, podcastId, title, description, audioUrl, artworkUrl, publishedAt, durationSeconds, fileSize, episodeNumber, seasonNumber, downloadStatus, localFilePath, lastPlayedPositionMs, lastPlayedAt)
+        VALUES (:id, :podcastId, :title, :description, :audioUrl, :artworkUrl, :publishedAt, :durationSeconds, :fileSize, :episodeNumber, :seasonNumber, 'NOT_DOWNLOADED', NULL, 0, 0)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             description = excluded.description,
@@ -77,4 +77,19 @@ interface EpisodeDao {
 
     @Query("SELECT * FROM episodes WHERE downloadStatus IN ('QUEUED', 'DOWNLOADING', 'DOWNLOADED') ORDER BY publishedAt DESC")
     fun getDownloadedEpisodes(): Flow<List<EpisodeEntity>>
+
+    @Query("UPDATE episodes SET lastPlayedPositionMs = :positionMs, lastPlayedAt = :lastPlayedAt WHERE id = :episodeId")
+    suspend fun updatePlaybackPosition(episodeId: Long, positionMs: Long, lastPlayedAt: Long)
+
+    @Query(
+        """
+        SELECT * FROM episodes
+        WHERE lastPlayedAt > 0
+            AND lastPlayedPositionMs > 0
+            AND (durationSeconds = 0 OR lastPlayedPositionMs < durationSeconds * 1000)
+        ORDER BY lastPlayedAt DESC
+        LIMIT 10
+        """
+    )
+    fun getRecentlyPlayed(): Flow<List<EpisodeEntity>>
 }

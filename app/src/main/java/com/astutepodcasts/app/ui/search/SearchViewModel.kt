@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.astutepodcasts.app.ui.toUserMessage
 
 data class SearchUiState(
     val query: String = "",
@@ -70,8 +71,19 @@ class SearchViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, error = e.message ?: "Failed to load trending")
+                    it.copy(isLoading = false, error = e.toUserMessage())
                 }
+            }
+        }
+    }
+
+    fun retry() {
+        val query = _uiState.value.query
+        viewModelScope.launch {
+            if (query.isBlank()) {
+                loadTrending()
+            } else {
+                search(query)
             }
         }
     }
@@ -89,8 +101,9 @@ class SearchViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             _uiState.update {
-                it.copy(isLoading = false, error = e.message ?: "Search failed")
+                it.copy(isLoading = false, error = e.toUserMessage())
             }
         }
     }
+
 }

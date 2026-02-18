@@ -13,8 +13,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -45,73 +48,125 @@ fun HomeScreen(
             title = { Text("Astute Podcasts") }
         )
 
-        if (uiState.subscribedPodcasts.isEmpty()) {
+        if (uiState.subscribedPodcasts.isEmpty() && uiState.continueListening.isEmpty()) {
             EmptyHomeState(modifier = Modifier.fillMaxSize())
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                item {
-                    Text(
-                        text = "Your Podcasts",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                item {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    ) {
-                        FilterChip(
-                            selected = uiState.sortOrder == PodcastSortOrder.RECENT_EPISODES,
-                            onClick = { viewModel.setSortOrder(PodcastSortOrder.RECENT_EPISODES) },
-                            label = { Text("Recent") }
-                        )
-                        FilterChip(
-                            selected = uiState.sortOrder == PodcastSortOrder.ALPHABETICAL,
-                            onClick = { viewModel.setSortOrder(PodcastSortOrder.ALPHABETICAL) },
-                            label = { Text("A\u2013Z") }
-                        )
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = { viewModel.refreshFeeds() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (uiState.error != null) {
+                        val actionColor = MaterialTheme.colorScheme.inversePrimary
+                        Snackbar(
+                            action = {
+                                TextButton(onClick = {
+                                    viewModel.clearError()
+                                    viewModel.refreshFeeds()
+                                }) {
+                                    Text("Retry", color = actionColor)
+                                }
+                            },
+                            dismissAction = {
+                                TextButton(onClick = { viewModel.clearError() }) {
+                                    Text("Dismiss", color = actionColor)
+                                }
+                            },
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(uiState.error!!)
+                        }
                     }
-                }
-                val rows = uiState.subscribedPodcasts.chunked(3)
-                items(rows) { rowPodcasts ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
-                        rowPodcasts.forEach { podcast ->
-                            PodcastCard(
-                                podcast = podcast,
-                                onClick = { onPodcastClick(podcast.id) },
-                                modifier = Modifier.weight(1f)
+
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item {
+                            Text(
+                                text = "Your Podcasts",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
                         }
-                        // Fill remaining slots with empty spacers for incomplete rows
-                        repeat(3 - rowPodcasts.size) {
-                            Spacer(modifier = Modifier.weight(1f))
+                        item {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
+                                FilterChip(
+                                    selected = uiState.sortOrder == PodcastSortOrder.RECENT_EPISODES,
+                                    onClick = { viewModel.setSortOrder(PodcastSortOrder.RECENT_EPISODES) },
+                                    label = { Text("Recent") }
+                                )
+                                FilterChip(
+                                    selected = uiState.sortOrder == PodcastSortOrder.ALPHABETICAL,
+                                    onClick = { viewModel.setSortOrder(PodcastSortOrder.ALPHABETICAL) },
+                                    label = { Text("A\u2013Z") }
+                                )
+                            }
+                        }
+                        val rows = uiState.subscribedPodcasts.chunked(3)
+                        items(rows) { rowPodcasts ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) {
+                                rowPodcasts.forEach { podcast ->
+                                    PodcastCard(
+                                        podcast = podcast,
+                                        onClick = { onPodcastClick(podcast.id) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                repeat(3 - rowPodcasts.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Recent Episodes",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        val recentEpisodes = uiState.recentEpisodes.take(5)
+                        items(recentEpisodes) { episode ->
+                            EpisodeListItem(
+                                episode = episode,
+                                onPlayClick = { onEpisodePlayClick(episode) },
+                                onDownloadClick = { onEpisodeDownloadClick(episode) },
+                                onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
+                                onDeleteDownloadClick = { onDeleteDownloadClick(episode.id) },
+                                downloadProgress = downloadProgressMap[episode.id]?.let { it / 100f },
+                                onClick = { }
+                            )
+                        }
+
+                        if (uiState.continueListening.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Continue Listening",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(uiState.continueListening) { episode ->
+                                EpisodeListItem(
+                                    episode = episode,
+                                    onPlayClick = { onEpisodePlayClick(episode) },
+                                    onDownloadClick = { onEpisodeDownloadClick(episode) },
+                                    onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
+                                    onDeleteDownloadClick = { onDeleteDownloadClick(episode.id) },
+                                    downloadProgress = downloadProgressMap[episode.id]?.let { it / 100f },
+                                    onClick = { }
+                                )
+                            }
                         }
                     }
-                }
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Recent Episodes",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                items(uiState.recentEpisodes) { episode ->
-                    EpisodeListItem(
-                        episode = episode,
-                        onPlayClick = { onEpisodePlayClick(episode) },
-                        onDownloadClick = { onEpisodeDownloadClick(episode) },
-                        onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
-                        onDeleteDownloadClick = { onDeleteDownloadClick(episode.id) },
-                        downloadProgress = downloadProgressMap[episode.id]?.let { it / 100f },
-                        onClick = { }
-                    )
                 }
             }
         }

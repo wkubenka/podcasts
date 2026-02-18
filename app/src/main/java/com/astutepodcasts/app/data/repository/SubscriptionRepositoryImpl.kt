@@ -56,14 +56,18 @@ class SubscriptionRepositoryImpl @Inject constructor(
 
     override suspend fun refreshFeeds() {
         val podcastIds = subscriptionDao.getAllSubscribedPodcastIds()
+        var failureCount = 0
         for (podcastId in podcastIds) {
             try {
                 val episodes = api.getEpisodesByFeedId(podcastId).items
                     .map { it.toDomain(overridePodcastId = podcastId) }
                 episodeDao.upsertAllPreservingDownloadStatus(episodes.map { it.toEntity() })
             } catch (_: Exception) {
-                // Skip failed feeds silently
+                failureCount++
             }
+        }
+        if (failureCount > 0 && failureCount == podcastIds.size) {
+            throw Exception("Failed to refresh feeds. Check your connection.")
         }
     }
 }

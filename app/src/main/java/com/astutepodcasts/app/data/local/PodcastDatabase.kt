@@ -2,6 +2,8 @@ package com.astutepodcasts.app.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.astutepodcasts.app.data.local.dao.EpisodeDao
 import com.astutepodcasts.app.data.local.dao.PodcastDao
 import com.astutepodcasts.app.data.local.dao.SubscriptionDao
@@ -11,11 +13,20 @@ import com.astutepodcasts.app.data.local.entity.SubscriptionEntity
 
 @Database(
     entities = [PodcastEntity::class, EpisodeEntity::class, SubscriptionEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class PodcastDatabase : RoomDatabase() {
     abstract fun podcastDao(): PodcastDao
     abstract fun episodeDao(): EpisodeDao
     abstract fun subscriptionDao(): SubscriptionDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE episodes ADD COLUMN lastPlayedPositionMs INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE episodes ADD COLUMN lastPlayedAt INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+    }
 }

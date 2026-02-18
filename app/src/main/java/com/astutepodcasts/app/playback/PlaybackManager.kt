@@ -4,6 +4,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import com.astutepodcasts.app.data.local.PlaybackPreferences
+import com.astutepodcasts.app.data.local.dao.EpisodeDao
 import com.astutepodcasts.app.domain.model.DownloadStatus
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.PlaybackState
@@ -27,7 +28,8 @@ import javax.inject.Singleton
 class PlaybackManager @Inject constructor(
     private val connection: PlaybackServiceConnection,
     private val playbackPreferences: PlaybackPreferences,
-    private val downloadRepository: DownloadRepository
+    private val downloadRepository: DownloadRepository,
+    private val episodeDao: EpisodeDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -37,6 +39,7 @@ class PlaybackManager @Inject constructor(
     private var currentEpisode: Episode? = null
     private var hasAttachedListener = false
     private var downloadObserverJob: Job? = null
+    private var pollCount = 0
 
     init {
         scope.launch {
@@ -56,6 +59,9 @@ class PlaybackManager @Inject constructor(
     }
 
     fun play(episode: Episode) {
+        // Save current episode's position before switching
+        saveCurrentPosition()
+
         downloadObserverJob?.cancel()
         currentEpisode = episode
         _playbackState.update {
@@ -74,6 +80,11 @@ class PlaybackManager @Inject constructor(
             controller.playbackParameters = PlaybackParameters(_playbackState.value.playbackSpeed)
             controller.prepare()
             controller.play()
+
+            // Restore saved position
+            if (episode.lastPlayedPositionMs > 0) {
+                controller.seekTo(episode.lastPlayedPositionMs)
+            }
 
             when (episode.downloadStatus) {
                 DownloadStatus.NOT_DOWNLOADED, DownloadStatus.FAILED -> {
@@ -158,10 +169,28 @@ class PlaybackManager @Inject constructor(
         }
     }
 
+    private fun saveCurrentPosition() {
+        val episode = currentEpisode ?: return
+        val controller = connection.controller.value ?: return
+        val positionMs = controller.currentPosition.coerceAtLeast(0)
+        if (positionMs > 0) {
+            scope.launch(Dispatchers.IO) {
+                episodeDao.updatePlaybackPosition(
+                    episodeId = episode.id,
+                    positionMs = positionMs,
+                    lastPlayedAt = System.currentTimeMillis()
+                )
+            }
+        }
+    }
+
     private fun attachPlayerListener(controller: Player) {
         controller.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _playbackState.update { it.copy(isPlaying = isPlaying) }
+                if (!isPlaying) {
+                    saveCurrentPosition()
+                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -170,6 +199,9 @@ class PlaybackManager @Inject constructor(
                         isBuffering = playbackState == Player.STATE_BUFFERING,
                         durationMs = controller.duration.coerceAtLeast(0)
                     )
+                }
+                if (playbackState == Player.STATE_ENDED) {
+                    onEpisodeFinished()
                 }
             }
 
@@ -183,6 +215,41 @@ class PlaybackManager @Inject constructor(
         })
     }
 
+    private fun onEpisodeFinished() {
+        val episode = currentEpisode ?: return
+        downloadObserverJob?.cancel()
+
+        // Delete downloaded file if present
+        if (episode.downloadStatus == DownloadStatus.DOWNLOADED ||
+            episode.downloadStatus == DownloadStatus.DOWNLOADING ||
+            episode.downloadStatus == DownloadStatus.QUEUED
+        ) {
+            scope.launch(Dispatchers.IO) {
+                downloadRepository.deleteDownload(episode.id)
+            }
+        }
+
+        // Clear saved playback position since episode is finished
+        scope.launch(Dispatchers.IO) {
+            episodeDao.updatePlaybackPosition(
+                episodeId = episode.id,
+                positionMs = 0,
+                lastPlayedAt = 0
+            )
+        }
+
+        // Stop playback and clear state
+        scope.launch {
+            val controller = connection.controller.value
+            controller?.stop()
+            controller?.clearMediaItems()
+        }
+        currentEpisode = null
+        _playbackState.update {
+            PlaybackState(playbackSpeed = it.playbackSpeed)
+        }
+    }
+
     private fun startPositionPolling() {
         scope.launch {
             while (true) {
@@ -193,6 +260,12 @@ class PlaybackManager @Inject constructor(
                             currentPositionMs = controller.currentPosition.coerceAtLeast(0),
                             durationMs = controller.duration.coerceAtLeast(0)
                         )
+                    }
+                    // Save position every ~10s (20 polls at 500ms each)
+                    pollCount++
+                    if (pollCount >= 20 && controller.isPlaying) {
+                        pollCount = 0
+                        saveCurrentPosition()
                     }
                 }
                 delay(500)

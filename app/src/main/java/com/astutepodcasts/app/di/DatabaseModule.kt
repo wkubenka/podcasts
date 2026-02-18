@@ -25,7 +25,7 @@ object DatabaseModule {
             context,
             PodcastDatabase::class.java,
             "podcast_database"
-        ).build()
+        ).addMigrations(PodcastDatabase.MIGRATION_1_2).build()
     }
 
     @Provides

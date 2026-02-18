@@ -17,7 +17,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +43,7 @@ import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.Podcast
 import com.astutepodcasts.app.ui.components.EpisodeListItem
+import com.astutepodcasts.app.ui.components.EpisodeListItemPlaceholder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,11 +78,10 @@ fun PodcastDetailScreen(
 
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                LazyColumn {
+                    items(8) {
+                        EpisodeListItemPlaceholder()
+                    }
                 }
             }
             uiState.error != null -> {

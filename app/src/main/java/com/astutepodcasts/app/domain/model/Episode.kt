@@ -13,5 +13,7 @@ data class Episode(
     val episodeNumber: Int?,
     val seasonNumber: Int?,
     val downloadStatus: DownloadStatus = DownloadStatus.NOT_DOWNLOADED,
-    val localFilePath: String? = null
+    val localFilePath: String? = null,
+    val lastPlayedPositionMs: Long = 0,
+    val lastPlayedAt: Long = 0
 )

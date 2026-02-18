@@ -7,4 +7,5 @@ interface EpisodeRepository {
     suspend fun getEpisodesForPodcast(feedId: Long): List<Episode>
     suspend fun getLocalEpisodesForPodcast(podcastId: Long): List<Episode>
     fun observeEpisodesForPodcast(podcastId: Long): Flow<List<Episode>>
+    fun getRecentlyPlayedEpisodes(): Flow<List<Episode>>
 }

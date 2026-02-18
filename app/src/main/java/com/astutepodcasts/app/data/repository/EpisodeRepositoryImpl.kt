@@ -29,4 +29,10 @@ class EpisodeRepositoryImpl @Inject constructor(
             entities.map { it.toDomain() }
         }
     }
+
+    override fun getRecentlyPlayedEpisodes(): Flow<List<Episode>> {
+        return episodeDao.getRecentlyPlayed().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 }

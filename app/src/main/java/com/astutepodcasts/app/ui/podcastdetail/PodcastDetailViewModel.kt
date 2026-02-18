@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.astutepodcasts.app.ui.toUserMessage
 
 data class PodcastDetailUiState(
     val podcast: Podcast? = null,
@@ -124,7 +125,7 @@ class PodcastDetailViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, error = e.message ?: "Failed to load podcast")
+                    it.copy(isLoading = false, error = e.toUserMessage())
                 }
             }
         }

@@ -50,7 +50,7 @@ fun EpisodeListItem(
     ) {
         AsyncImage(
             model = episode.artworkUrl ?: podcastArtworkUrl,
-            contentDescription = null,
+            contentDescription = episode.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(56.dp)
@@ -81,7 +81,7 @@ fun EpisodeListItem(
         IconButton(onClick = onPlayClick) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
-                contentDescription = "Play",
+                contentDescription = "Play ${episode.title}",
                 tint = MaterialTheme.colorScheme.primary
             )
         }
