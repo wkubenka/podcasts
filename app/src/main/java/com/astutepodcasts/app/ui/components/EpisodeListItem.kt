@@ -115,8 +115,16 @@ fun EpisodeListItem(
 private fun formatEpisodeMetadata(episode: Episode): String {
     val date = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
         .format(Date(episode.publishedAt * 1000))
-    val duration = formatDuration(episode.durationSeconds)
-    return "$date • $duration"
+    val durationText = if (episode.lastPlayedPositionMs > 0 &&
+        episode.durationSeconds > 0 &&
+        episode.lastPlayedPositionMs < episode.durationSeconds * 1000L
+    ) {
+        val remainingSeconds = ((episode.durationSeconds * 1000L - episode.lastPlayedPositionMs) / 1000).toInt()
+        "${formatDuration(remainingSeconds)} left"
+    } else {
+        formatDuration(episode.durationSeconds)
+    }
+    return "$date • $durationText"
 }
 
 private fun formatDuration(totalSeconds: Int): String {
