@@ -34,6 +34,7 @@ import com.astutepodcasts.app.ui.search.SearchScreen
 
 @Composable
 fun AppNavGraph(
+    openNowPlaying: Boolean = false,
     mainViewModel: MainViewModel = hiltViewModel()
 ) {
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -47,6 +48,15 @@ fun AppNavGraph(
     }
 
     val navController = rememberNavController()
+
+    LaunchedEffect(openNowPlaying) {
+        if (openNowPlaying) {
+            navController.navigate(Screen.NowPlaying.route) {
+                launchSingleTop = true
+            }
+        }
+    }
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
