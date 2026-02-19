@@ -80,7 +80,9 @@ class PodcastDetailViewModel @Inject constructor(
                                 episode.copy(
                                     downloadStatus = roomEp.downloadStatus,
                                     localFilePath = roomEp.localFilePath,
-                                    isArchived = roomEp.isArchived
+                                    isArchived = roomEp.isArchived,
+                                    lastPlayedPositionMs = roomEp.lastPlayedPositionMs,
+                                    lastPlayedAt = roomEp.lastPlayedAt
                                 )
                             } ?: episode
                         }
@@ -153,7 +155,9 @@ class PodcastDetailViewModel @Inject constructor(
                         episode.copy(
                             downloadStatus = local.downloadStatus,
                             localFilePath = local.localFilePath,
-                            isArchived = local.isArchived
+                            isArchived = local.isArchived,
+                            lastPlayedPositionMs = local.lastPlayedPositionMs,
+                            lastPlayedAt = local.lastPlayedAt
                         )
                     } ?: episode
                 }
