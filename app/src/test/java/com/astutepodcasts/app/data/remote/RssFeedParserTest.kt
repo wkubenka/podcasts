@@ -222,6 +222,37 @@ class RssFeedParserTest {
         assertNull(ep.artworkUrl)
     }
 
+    // --- HTML descriptions ---
+
+    @Test
+    fun `CDATA description with HTML tags is preserved`() {
+        val html = "<p>Episode with <b>bold</b> and <a href=\"https://example.com\">links</a></p>"
+        val xml = rss(item(description = "<![CDATA[$html]]>"))
+        val ep = parser.parse(xml, podcastId, podcastArtwork)[0]
+        assertEquals(html, ep.description)
+    }
+
+    @Test
+    fun `description with whitespace only falls back to itunes summary`() {
+        val xml = rss(item(description = "   ", itunesSummary = "Fallback summary"))
+        val ep = parser.parse(xml, podcastId, podcastArtwork)[0]
+        assertEquals("Fallback summary", ep.description)
+    }
+
+    @Test
+    fun `missing description element falls back to itunes summary`() {
+        val xml = rss(item(description = "", itunesSummary = "Only summary"))
+        val ep = parser.parse(xml, podcastId, podcastArtwork)[0]
+        assertEquals("Only summary", ep.description)
+    }
+
+    @Test
+    fun `missing description and no itunes summary gives empty string`() {
+        val xml = rss(item(description = ""))
+        val ep = parser.parse(xml, podcastId, podcastArtwork)[0]
+        assertEquals("", ep.description)
+    }
+
     // --- Default values ---
 
     @Test
