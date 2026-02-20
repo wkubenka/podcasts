@@ -112,7 +112,7 @@ fun EpisodeListItem(
     }
 }
 
-private fun formatEpisodeMetadata(episode: Episode): String {
+internal fun formatEpisodeMetadata(episode: Episode): String {
     val date = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
         .format(Date(episode.publishedAt * 1000))
     val durationText = if (episode.lastPlayedPositionMs > 0 &&
@@ -127,7 +127,7 @@ private fun formatEpisodeMetadata(episode: Episode): String {
     return "$date • $durationText"
 }
 
-private fun formatDuration(totalSeconds: Int): String {
+internal fun formatDuration(totalSeconds: Int): String {
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"

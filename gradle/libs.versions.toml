@@ -22,7 +22,11 @@ kotlinx-serialization = "1.7.3"
 datastore = "1.1.1"
 splashscreen = "1.0.1"
 
+junit = "4.13.2"
+
 [libraries]
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
 # Compose BOM
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
