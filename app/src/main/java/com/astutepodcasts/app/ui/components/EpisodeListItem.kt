@@ -35,7 +35,7 @@ import java.util.Locale
 @Composable
 fun EpisodeListItem(
     episode: Episode,
-    podcastArtworkUrl: String? = null,
+    podcastArtwork: Any? = null,
     onPlayClick: () -> Unit,
     onDownloadClick: () -> Unit,
     onCancelDownloadClick: () -> Unit = {},
@@ -55,7 +55,7 @@ fun EpisodeListItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = episode.artworkUrl ?: podcastArtworkUrl,
+            model = episode.artworkUrl ?: podcastArtwork,
             contentDescription = episode.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier

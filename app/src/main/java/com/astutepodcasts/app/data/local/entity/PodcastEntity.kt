@@ -13,5 +13,7 @@ data class PodcastEntity(
     val feedUrl: String,
     val language: String?,
     val episodeCount: Int,
-    val lastUpdateTime: Long
+    val lastUpdateTime: Long,
+    val localArtworkPath: String? = null,
+    val artworkCachedAt: Long = 0
 )

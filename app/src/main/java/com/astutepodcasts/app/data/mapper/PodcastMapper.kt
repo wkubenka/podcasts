@@ -25,7 +25,8 @@ fun Podcast.toEntity(): PodcastEntity = PodcastEntity(
     feedUrl = feedUrl,
     language = language,
     episodeCount = episodeCount,
-    lastUpdateTime = lastUpdateTime
+    lastUpdateTime = lastUpdateTime,
+    localArtworkPath = localArtworkPath
 )
 
 fun PodcastEntity.toDomain(): Podcast = Podcast(
@@ -34,6 +35,7 @@ fun PodcastEntity.toDomain(): Podcast = Podcast(
     author = author,
     description = description,
     artworkUrl = artworkUrl,
+    localArtworkPath = localArtworkPath,
     feedUrl = feedUrl,
     language = language,
     episodeCount = episodeCount,

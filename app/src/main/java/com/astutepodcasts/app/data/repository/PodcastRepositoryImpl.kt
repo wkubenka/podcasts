@@ -20,14 +20,14 @@ class PodcastRepositoryImpl @Inject constructor(
     override suspend fun searchPodcasts(query: String): List<Podcast> {
         val podcasts = api.searchByTerm(query).feeds.map { it.toDomain() }
         podcasts.forEach { cache[it.id] = it }
-        podcastDao.insertAll(podcasts.map { it.toEntity() })
+        podcastDao.upsertAllPreservingArtworkCache(podcasts.map { it.toEntity() })
         return podcasts
     }
 
     override suspend fun getTrendingPodcasts(): List<Podcast> {
         val podcasts = api.getTrending().feeds.map { it.toDomain() }.distinctBy { it.id }
         podcasts.forEach { cache[it.id] = it }
-        podcastDao.insertAll(podcasts.map { it.toEntity() })
+        podcastDao.upsertAllPreservingArtworkCache(podcasts.map { it.toEntity() })
         return podcasts
     }
 

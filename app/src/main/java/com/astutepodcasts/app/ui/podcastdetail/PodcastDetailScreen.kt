@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Episode
 import com.astutepodcasts.app.domain.model.Podcast
+import java.io.File
 import com.astutepodcasts.app.ui.components.EpisodeListItem
 import com.astutepodcasts.app.ui.components.EpisodeListItemPlaceholder
 import com.astutepodcasts.app.ui.components.HtmlText
@@ -150,7 +151,7 @@ fun PodcastDetailScreen(
                     items(uiState.filteredEpisodes) { episode ->
                         EpisodeListItem(
                             episode = episode,
-                            podcastArtworkUrl = podcast.artworkUrl,
+                            podcastArtwork = podcast.localArtworkPath?.let { File(it) } ?: podcast.artworkUrl,
                             onPlayClick = { onEpisodePlayClick(episode) },
                             onDownloadClick = { onEpisodeDownloadClick(episode) },
                             onCancelDownloadClick = { onCancelDownloadClick(episode.id) },
@@ -179,7 +180,7 @@ private fun PodcastHeader(
             .padding(16.dp)
     ) {
         AsyncImage(
-            model = podcast.artworkUrl,
+            model = podcast.localArtworkPath?.let { File(it) } ?: podcast.artworkUrl,
             contentDescription = podcast.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier

@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Podcast
+import java.io.File
 import com.astutepodcasts.app.ui.components.SearchResultItemPlaceholder
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,7 +138,7 @@ private fun SearchResultItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = podcast.artworkUrl,
+            model = podcast.localArtworkPath?.let { File(it) } ?: podcast.artworkUrl,
             contentDescription = podcast.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier

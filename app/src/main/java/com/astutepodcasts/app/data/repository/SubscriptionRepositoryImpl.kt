@@ -24,7 +24,8 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private val subscriptionDao: SubscriptionDao,
     private val rssFeedService: RssFeedService,
     private val rssFeedParser: RssFeedParser,
-    private val episodeIdGenerator: EpisodeIdGenerator
+    private val episodeIdGenerator: EpisodeIdGenerator,
+    private val artworkCacheManager: ArtworkCacheManager
 ) : SubscriptionRepository {
 
     override fun getSubscribedPodcasts(): Flow<List<Podcast>> {
@@ -44,7 +45,7 @@ class SubscriptionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun subscribe(podcast: Podcast, episodes: List<Episode>) {
-        podcastDao.insert(podcast.toEntity())
+        podcastDao.upsertAllPreservingArtworkCache(listOf(podcast.toEntity()))
         episodeDao.upsertAllPreservingDownloadStatus(episodes.map { it.toEntity() })
         subscriptionDao.insert(
             SubscriptionEntity(
@@ -52,10 +53,15 @@ class SubscriptionRepositoryImpl @Inject constructor(
                 subscribedAt = System.currentTimeMillis()
             )
         )
+        if (!podcast.artworkUrl.isNullOrBlank()) {
+            artworkCacheManager.cacheArtwork(podcast.id, podcast.artworkUrl)
+        }
     }
 
     override suspend fun unsubscribe(podcastId: Long) {
         subscriptionDao.deleteByPodcastId(podcastId)
+        artworkCacheManager.deleteArtwork(podcastId)
+        podcastDao.updateArtworkCache(podcastId, null, 0)
     }
 
     override suspend fun refreshFeeds() {
@@ -74,6 +80,11 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
         if (failureCount > 0 && failureCount == feedInfos.size) {
             throw Exception("Failed to refresh feeds. Check your connection.")
+        }
+        try {
+            artworkCacheManager.refreshStaleArtwork()
+        } catch (_: Exception) {
+            // Artwork refresh is best-effort; don't fail the feed refresh
         }
     }
 
