@@ -109,6 +109,7 @@ class PlaybackManager @Inject constructor(
                     if (currentEpisode?.id != episode.id) return@first true
 
                     val positionMs = controller.currentPosition
+                    val wasPlaying = controller.isPlaying
                     val updatedEpisode = episode.copy(
                         localFilePath = filePath,
                         downloadStatus = DownloadStatus.DOWNLOADED
@@ -116,7 +117,9 @@ class PlaybackManager @Inject constructor(
                     val localMediaItem = EpisodeMediaItemMapper.toMediaItem(updatedEpisode)
                     controller.setMediaItem(localMediaItem, positionMs)
                     controller.prepare()
-                    controller.play()
+                    if (wasPlaying) {
+                        controller.play()
+                    }
 
                     currentEpisode = updatedEpisode
                     _playbackState.update { it.copy(currentEpisode = updatedEpisode) }
