@@ -1,5 +1,7 @@
 package com.astutepodcasts.app.ui.nowplaying
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Forward30
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.astutepodcasts.app.ui.components.HtmlText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,10 +76,7 @@ fun NowPlayingScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier.fillMaxSize()
     ) {
         TopAppBar(
             title = { Text("Now Playing") },
@@ -84,124 +87,165 @@ fun NowPlayingScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        AsyncImage(
-            model = episode?.artworkUrl,
-            contentDescription = "Episode artwork",
-            contentScale = ContentScale.Crop,
+        Column(
             modifier = Modifier
-                .size(300.dp)
-                .clip(RoundedCornerShape(24.dp))
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = episode?.title ?: "",
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Slider(
-            value = sliderPosition.coerceIn(0f, 1f),
-            onValueChange = {
-                isSeeking = true
-                seekPosition = it
-            },
-            onValueChangeFinished = {
-                viewModel.seekTo((seekPosition * duration).toLong())
-                isSeeking = false
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                formatTime(playbackState.currentPositionMs),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                formatTime(playbackState.durationMs),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
+            Spacer(modifier = Modifier.height(24.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            AsyncImage(
+                model = episode?.artworkUrl,
+                contentDescription = "Episode artwork",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(300.dp)
+                    .clip(RoundedCornerShape(24.dp))
+            )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = viewModel::skipBackward) {
-                Icon(
-                    imageVector = Icons.Default.Replay10,
-                    contentDescription = "Rewind 10 seconds",
-                    modifier = Modifier.size(36.dp)
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = episode?.title ?: "",
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Slider(
+                value = sliderPosition.coerceIn(0f, 1f),
+                onValueChange = {
+                    isSeeking = true
+                    seekPosition = it
+                },
+                onValueChangeFinished = {
+                    viewModel.seekTo((seekPosition * duration).toLong())
+                    isSeeking = false
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    formatTime(playbackState.currentPositionMs),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    formatTime(playbackState.durationMs),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
-            if (playbackState.isBuffering) {
-                Box(
-                    modifier = Modifier.size(72.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            } else {
-                IconButton(
-                    onClick = viewModel::togglePlayPause,
-                    modifier = Modifier.size(72.dp)
-                ) {
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = viewModel::skipBackward) {
                     Icon(
-                        imageVector = if (playbackState.isPlaying) Icons.Default.PauseCircleFilled
-                        else Icons.Default.PlayCircleFilled,
-                        contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
+                        imageVector = Icons.Default.Replay10,
+                        contentDescription = "Rewind 10 seconds",
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                if (playbackState.isBuffering) {
+                    Box(
                         modifier = Modifier.size(72.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = viewModel::togglePlayPause,
+                        modifier = Modifier.size(72.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (playbackState.isPlaying) Icons.Default.PauseCircleFilled
+                            else Icons.Default.PlayCircleFilled,
+                            contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
+                            modifier = Modifier.size(72.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                IconButton(onClick = viewModel::skipForward) {
+                    Icon(
+                        imageVector = Icons.Default.Forward30,
+                        contentDescription = "Forward 30 seconds",
+                        modifier = Modifier.size(36.dp)
                     )
                 }
             }
-            IconButton(onClick = viewModel::skipForward) {
-                Icon(
-                    imageVector = Icons.Default.Forward30,
-                    contentDescription = "Forward 30 seconds",
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        FilledTonalButton(
-            onClick = {
-                val newSpeed = when (playbackState.playbackSpeed) {
-                    1.0f -> 1.25f
-                    1.25f -> 1.5f
-                    1.5f -> 2.0f
-                    2.0f -> 0.5f
-                    0.5f -> 0.75f
-                    else -> 1.0f
+            FilledTonalButton(
+                onClick = {
+                    val newSpeed = when (playbackState.playbackSpeed) {
+                        1.0f -> 1.25f
+                        1.25f -> 1.5f
+                        1.5f -> 2.0f
+                        2.0f -> 0.5f
+                        0.5f -> 0.75f
+                        else -> 1.0f
+                    }
+                    viewModel.setPlaybackSpeed(newSpeed)
                 }
-                viewModel.setPlaybackSpeed(newSpeed)
+            ) {
+                Text("${playbackState.playbackSpeed}x")
             }
-        ) {
-            Text("${playbackState.playbackSpeed}x")
+
+            if (!episode?.description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+
+                var showNotesExpanded by remember { mutableStateOf(false) }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize()
+                ) {
+                    Text(
+                        text = "Show Notes",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier
+                            .clickable { showNotesExpanded = !showNotesExpanded }
+                            .fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HtmlText(
+                        html = episode?.description ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (showNotesExpanded) Int.MAX_VALUE else 4,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showNotesExpanded = !showNotesExpanded }
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }
