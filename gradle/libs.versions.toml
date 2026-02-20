@@ -26,11 +26,7 @@ mockk = "1.13.16"
 turbine = "1.2.0"
 xpp3 = "1.1.4c"
 
-junit = "4.13.2"
-
 [libraries]
-# Testing
-junit = { group = "junit", name = "junit", version.ref = "junit" }
 # Compose BOM
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
