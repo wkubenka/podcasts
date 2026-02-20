@@ -114,6 +114,9 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // Testing
+    testImplementation(libs.junit)
+
     // Core
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
