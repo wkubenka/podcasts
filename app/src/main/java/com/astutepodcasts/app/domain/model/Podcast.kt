@@ -6,6 +6,7 @@ data class Podcast(
     val author: String,
     val description: String,
     val artworkUrl: String?,
+    val localArtworkPath: String? = null,
     val feedUrl: String,
     val language: String?,
     val episodeCount: Int,

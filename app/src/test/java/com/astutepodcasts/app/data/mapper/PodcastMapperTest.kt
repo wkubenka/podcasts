@@ -81,6 +81,7 @@ class PodcastMapperTest {
             id = 7,
             title = "Entity Podcast",
             artworkUrl = "https://art.com/pic.png",
+            localArtworkPath = "/data/artwork/podcast_7.jpg",
             feedUrl = "https://feed.com/rss",
             language = "de"
         )
@@ -90,6 +91,7 @@ class PodcastMapperTest {
         assertEquals(7L, entity.id)
         assertEquals("Entity Podcast", entity.title)
         assertEquals("https://art.com/pic.png", entity.artworkUrl)
+        assertEquals("/data/artwork/podcast_7.jpg", entity.localArtworkPath)
         assertEquals("https://feed.com/rss", entity.feedUrl)
         assertEquals("de", entity.language)
     }
@@ -106,6 +108,12 @@ class PodcastMapperTest {
         assertNull(podcast.toEntity().language)
     }
 
+    @Test
+    fun `toEntity preserves null localArtworkPath`() {
+        val podcast = TestData.podcast(localArtworkPath = null)
+        assertNull(podcast.toEntity().localArtworkPath)
+    }
+
     // --- PodcastEntity.toDomain() ---
 
     @Test
@@ -119,7 +127,8 @@ class PodcastMapperTest {
             feedUrl = "https://feed.com/f",
             language = "ja",
             episodeCount = 50,
-            lastUpdateTime = 12345L
+            lastUpdateTime = 12345L,
+            localArtworkPath = "/data/artwork/podcast_99.jpg"
         )
 
         val podcast = entity.toDomain()
@@ -129,10 +138,17 @@ class PodcastMapperTest {
         assertEquals("Author", podcast.author)
         assertEquals("Desc", podcast.description)
         assertEquals("https://art.com/a.jpg", podcast.artworkUrl)
+        assertEquals("/data/artwork/podcast_99.jpg", podcast.localArtworkPath)
         assertEquals("https://feed.com/f", podcast.feedUrl)
         assertEquals("ja", podcast.language)
         assertEquals(50, podcast.episodeCount)
         assertEquals(12345L, podcast.lastUpdateTime)
+    }
+
+    @Test
+    fun `entity toDomain maps null localArtworkPath`() {
+        val entity = TestData.podcastEntity(localArtworkPath = null)
+        assertNull(entity.toDomain().localArtworkPath)
     }
 
     // --- Round-trip ---

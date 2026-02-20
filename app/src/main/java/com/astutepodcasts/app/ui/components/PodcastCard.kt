@@ -11,6 +11,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.astutepodcasts.app.domain.model.Podcast
+import java.io.File
 
 @Composable
 fun PodcastCard(
@@ -19,7 +20,7 @@ fun PodcastCard(
     modifier: Modifier = Modifier
 ) {
     AsyncImage(
-        model = podcast.artworkUrl,
+        model = podcast.localArtworkPath?.let { File(it) } ?: podcast.artworkUrl,
         contentDescription = podcast.title,
         contentScale = ContentScale.Crop,
         modifier = modifier
