@@ -15,6 +15,7 @@ object TestData {
         author: String = "Test Author",
         description: String = "Test description",
         artworkUrl: String? = "https://example.com/artwork.jpg",
+        localArtworkPath: String? = null,
         feedUrl: String = "https://example.com/feed.xml",
         language: String? = "en",
         episodeCount: Int = 10,
@@ -25,6 +26,7 @@ object TestData {
         author = author,
         description = description,
         artworkUrl = artworkUrl,
+        localArtworkPath = localArtworkPath,
         feedUrl = feedUrl,
         language = language,
         episodeCount = episodeCount,
@@ -100,7 +102,9 @@ object TestData {
         feedUrl: String = "https://example.com/feed.xml",
         language: String? = "en",
         episodeCount: Int = 10,
-        lastUpdateTime: Long = 1000000L
+        lastUpdateTime: Long = 1000000L,
+        localArtworkPath: String? = null,
+        artworkCachedAt: Long = 0
     ) = PodcastEntity(
         id = id,
         title = title,
@@ -110,7 +114,9 @@ object TestData {
         feedUrl = feedUrl,
         language = language,
         episodeCount = episodeCount,
-        lastUpdateTime = lastUpdateTime
+        lastUpdateTime = lastUpdateTime,
+        localArtworkPath = localArtworkPath,
+        artworkCachedAt = artworkCachedAt
     )
 
     fun episodeEntity(
