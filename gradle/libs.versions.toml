@@ -21,6 +21,10 @@ activity-compose = "1.9.3"
 kotlinx-serialization = "1.7.3"
 datastore = "1.1.1"
 splashscreen = "1.0.1"
+junit = "4.13.2"
+mockk = "1.13.16"
+turbine = "1.2.0"
+xpp3 = "1.1.4c"
 
 junit = "4.13.2"
 
@@ -84,6 +88,13 @@ core-splashscreen = { group = "androidx.core", name = "core-splashscreen", versi
 
 # Coroutines
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+xpp3 = { group = "xpp3", name = "xpp3", version.ref = "xpp3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
