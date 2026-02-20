@@ -120,4 +120,11 @@ dependencies {
 
     // Splash Screen
     implementation(libs.core.splashscreen)
+
+    // Testing
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.xpp3)
 }
