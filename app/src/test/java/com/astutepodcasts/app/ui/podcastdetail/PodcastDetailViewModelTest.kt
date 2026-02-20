@@ -108,6 +108,136 @@ class PodcastDetailViewModelTest {
         assertEquals(DownloadStatus.NOT_DOWNLOADED, ep2.downloadStatus)
     }
 
+    @Test
+    fun `load preserves playback progress from local episodes`() = runTest {
+        val apiEpisodes = listOf(
+            TestData.episode(
+                id = 1, podcastId = podcastId,
+                title = "Fresh Title",
+                lastPlayedPositionMs = 0,
+                lastPlayedAt = 0
+            )
+        )
+        val localEpisodes = listOf(
+            TestData.episode(
+                id = 1, podcastId = podcastId,
+                title = "Stale Title",
+                lastPlayedPositionMs = 45000,
+                lastPlayedAt = 999L,
+                isArchived = true,
+                downloadStatus = DownloadStatus.DOWNLOADED,
+                localFilePath = "/data/ep1.mp3"
+            )
+        )
+
+        val vm = createViewModel(apiEpisodes = apiEpisodes, localEpisodes = localEpisodes)
+        advanceUntilIdle()
+
+        val ep = vm.uiState.value.episodes.single()
+        // Local state preserved
+        assertEquals(45000L, ep.lastPlayedPositionMs)
+        assertEquals(999L, ep.lastPlayedAt)
+        assertTrue(ep.isArchived)
+        assertEquals(DownloadStatus.DOWNLOADED, ep.downloadStatus)
+        assertEquals("/data/ep1.mp3", ep.localFilePath)
+        // API metadata overlaid
+        assertEquals("Fresh Title", ep.title)
+    }
+
+    @Test
+    fun `load overlays api metadata onto local episodes`() = runTest {
+        val apiEpisodes = listOf(
+            TestData.episode(
+                id = 1, podcastId = podcastId,
+                title = "Updated Title",
+                description = "Updated description",
+                audioUrl = "https://new.com/audio.mp3",
+                artworkUrl = "https://new.com/art.jpg",
+                publishedAt = 2000L,
+                durationSeconds = 7200,
+                fileSize = 100_000_000L,
+                episodeNumber = 5,
+                seasonNumber = 2
+            )
+        )
+        val localEpisodes = listOf(
+            TestData.episode(
+                id = 1, podcastId = podcastId,
+                title = "Old Title",
+                description = "Old description",
+                audioUrl = "https://old.com/audio.mp3",
+                artworkUrl = "https://old.com/art.jpg",
+                publishedAt = 1000L,
+                durationSeconds = 3600,
+                fileSize = 50_000_000L,
+                episodeNumber = 1,
+                seasonNumber = 1,
+                lastPlayedPositionMs = 30000
+            )
+        )
+
+        val vm = createViewModel(apiEpisodes = apiEpisodes, localEpisodes = localEpisodes)
+        advanceUntilIdle()
+
+        val ep = vm.uiState.value.episodes.single()
+        assertEquals("Updated Title", ep.title)
+        assertEquals("Updated description", ep.description)
+        assertEquals("https://new.com/audio.mp3", ep.audioUrl)
+        assertEquals("https://new.com/art.jpg", ep.artworkUrl)
+        assertEquals(2000L, ep.publishedAt)
+        assertEquals(7200, ep.durationSeconds)
+        assertEquals(100_000_000L, ep.fileSize)
+        assertEquals(5, ep.episodeNumber)
+        assertEquals(2, ep.seasonNumber)
+        // Local state still preserved
+        assertEquals(30000L, ep.lastPlayedPositionMs)
+    }
+
+    // --- Room observer merge ---
+
+    @Test
+    fun `room observer preserves api metadata while updating local state`() = runTest {
+        val apiEpisodes = listOf(
+            TestData.episode(
+                id = 1, podcastId = podcastId,
+                title = "API Title",
+                description = "API desc",
+                audioUrl = "https://api.com/audio.mp3",
+                lastPlayedPositionMs = 0,
+                downloadStatus = DownloadStatus.NOT_DOWNLOADED
+            )
+        )
+
+        val vm = createViewModel(apiEpisodes = apiEpisodes, localEpisodes = emptyList())
+        advanceUntilIdle()
+
+        // Simulate Room emitting an updated episode (e.g. download completed, playback progress saved)
+        observeEpisodesFlow.value = listOf(
+            TestData.episode(
+                id = 1, podcastId = podcastId,
+                title = "Room Title",
+                description = "Room desc",
+                audioUrl = "https://room.com/audio.mp3",
+                downloadStatus = DownloadStatus.DOWNLOADED,
+                localFilePath = "/data/ep1.mp3",
+                lastPlayedPositionMs = 60000,
+                lastPlayedAt = 500L
+            )
+        )
+        advanceUntilIdle()
+
+        val ep = vm.uiState.value.episodes.single()
+        // Room local state preserved
+        assertEquals(DownloadStatus.DOWNLOADED, ep.downloadStatus)
+        assertEquals("/data/ep1.mp3", ep.localFilePath)
+        assertEquals(60000L, ep.lastPlayedPositionMs)
+        assertEquals(500L, ep.lastPlayedAt)
+        // API metadata overlaid onto Room episode
+        assertEquals("API Title", ep.title)
+        assertEquals("API desc", ep.description)
+        assertEquals("https://api.com/audio.mp3", ep.audioUrl)
+    }
+
     // --- Subscription ---
 
     @Test

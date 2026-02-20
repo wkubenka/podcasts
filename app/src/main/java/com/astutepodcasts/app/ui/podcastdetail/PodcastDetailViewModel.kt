@@ -77,11 +77,7 @@ class PodcastDetailViewModel @Inject constructor(
                         }
                         val updated = state.episodes.map { episode ->
                             statusMap[episode.id]?.let { roomEp ->
-                                episode.copy(
-                                    downloadStatus = roomEp.downloadStatus,
-                                    localFilePath = roomEp.localFilePath,
-                                    isArchived = roomEp.isArchived
-                                )
+                                roomEp.withFeedMetadataFrom(episode)
                             } ?: episode
                         }
                         state.copy(episodes = updated)
@@ -134,6 +130,22 @@ class PodcastDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Overlays RSS feed metadata onto this episode, preserving all local-only
+     * state (download status, playback progress, archive flag, etc.).
+     */
+    private fun Episode.withFeedMetadataFrom(api: Episode): Episode = copy(
+        title = api.title,
+        description = api.description,
+        audioUrl = api.audioUrl,
+        artworkUrl = api.artworkUrl,
+        publishedAt = api.publishedAt,
+        durationSeconds = api.durationSeconds,
+        fileSize = api.fileSize,
+        episodeNumber = api.episodeNumber,
+        seasonNumber = api.seasonNumber
+    )
+
     private fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -146,15 +158,12 @@ class PodcastDetailViewModel @Inject constructor(
                 val apiEpisodes = episodesDeferred.await()
                 val localEpisodes = localEpisodesDeferred.await()
 
-                // Merge: use API episode data but preserve download status from Room
+                // Merge: start from local episode (preserving all local state)
+                // and overlay fresh feed metadata from the API
                 val localStatusMap = localEpisodes.associate { it.id to it }
                 val mergedEpisodes = apiEpisodes.map { episode ->
                     localStatusMap[episode.id]?.let { local ->
-                        episode.copy(
-                            downloadStatus = local.downloadStatus,
-                            localFilePath = local.localFilePath,
-                            isArchived = local.isArchived
-                        )
+                        local.withFeedMetadataFrom(episode)
                     } ?: episode
                 }
 
