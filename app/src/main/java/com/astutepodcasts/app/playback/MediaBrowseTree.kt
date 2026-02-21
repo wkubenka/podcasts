@@ -38,9 +38,9 @@ class MediaBrowseTree @Inject constructor(
     fun getRootChildren(): List<MediaItem> {
         return listOf(
             browsableFolder(SUBSCRIPTIONS_ID, "Subscriptions", MediaMetadata.MEDIA_TYPE_FOLDER_PODCASTS),
-            browsableFolder(RECENT_ID, "Recent Episodes", MediaMetadata.MEDIA_TYPE_FOLDER_EPISODES),
-            browsableFolder(DOWNLOADS_ID, "Downloads", MediaMetadata.MEDIA_TYPE_FOLDER_EPISODES),
-            browsableFolder(CONTINUE_LISTENING_ID, "Continue Listening", MediaMetadata.MEDIA_TYPE_FOLDER_EPISODES),
+            browsableFolder(RECENT_ID, "Recent Episodes", MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+            browsableFolder(DOWNLOADS_ID, "Downloads", MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+            browsableFolder(CONTINUE_LISTENING_ID, "Continue Listening", MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
         )
     }
 

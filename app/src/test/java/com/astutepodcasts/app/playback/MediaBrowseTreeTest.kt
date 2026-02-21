@@ -85,9 +85,9 @@ class MediaBrowseTreeTest {
         val children = tree.getRootChildren()
 
         assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_PODCASTS, children[0].mediaMetadata.mediaType)
-        assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_EPISODES, children[1].mediaMetadata.mediaType)
-        assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_EPISODES, children[2].mediaMetadata.mediaType)
-        assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_EPISODES, children[3].mediaMetadata.mediaType)
+        assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED, children[1].mediaMetadata.mediaType)
+        assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED, children[2].mediaMetadata.mediaType)
+        assertEquals(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED, children[3].mediaMetadata.mediaType)
     }
 
     // --- getChildren dispatches to correct DAO ---
