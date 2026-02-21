@@ -76,15 +76,11 @@ class PlaybackManager @Inject constructor(
         scope.launch {
             val controller = awaitController()
             val mediaItem = EpisodeMediaItemMapper.toMediaItem(episode)
-            controller.setMediaItem(mediaItem)
+            val startPositionMs = episode.lastPlayedPositionMs.coerceAtLeast(0)
+            controller.setMediaItem(mediaItem, startPositionMs)
             controller.playbackParameters = PlaybackParameters(_playbackState.value.playbackSpeed)
             controller.prepare()
             controller.play()
-
-            // Restore saved position
-            if (episode.lastPlayedPositionMs > 0) {
-                controller.seekTo(episode.lastPlayedPositionMs)
-            }
 
             when (episode.downloadStatus) {
                 DownloadStatus.NOT_DOWNLOADED, DownloadStatus.FAILED -> {
