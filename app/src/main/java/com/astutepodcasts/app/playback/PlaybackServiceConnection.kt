@@ -2,6 +2,7 @@ package com.astutepodcasts.app.playback
 
 import android.content.ComponentName
 import android.content.Context
+import androidx.media3.session.MediaBrowser
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
@@ -26,9 +27,9 @@ class PlaybackServiceConnection @Inject constructor(
             context,
             ComponentName(context, PlaybackService::class.java)
         )
-        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-        controllerFuture.addListener(
-            { _controller.value = controllerFuture.get() },
+        val browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
+        browserFuture.addListener(
+            { _controller.value = browserFuture.get() },
             MoreExecutors.directExecutor()
         )
     }
