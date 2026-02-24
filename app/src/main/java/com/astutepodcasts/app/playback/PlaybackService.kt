@@ -44,7 +44,11 @@ class PlaybackService : MediaLibraryService() {
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
+            .setSeekBackIncrementMs(10_000)
+            .setSeekForwardIncrementMs(30_000)
             .build()
+
+        val forwardingPlayer = SeekForwardingPlayer(player)
 
         val sessionActivityIntent = PendingIntent.getActivity(
             this,
@@ -53,7 +57,7 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        mediaLibrarySession = MediaLibrarySession.Builder(this, player, LibrarySessionCallback())
+        mediaLibrarySession = MediaLibrarySession.Builder(this, forwardingPlayer, LibrarySessionCallback())
             .setSessionActivity(sessionActivityIntent)
             .build()
     }
