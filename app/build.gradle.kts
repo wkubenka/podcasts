@@ -18,6 +18,22 @@ android {
     namespace = "com.astute.podcasts"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            val ksPath = System.getenv("KEYSTORE_FILE")
+                ?: localProperties.getProperty("KEYSTORE_FILE", "")
+            if (ksPath.isNotEmpty()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: localProperties.getProperty("KEYSTORE_PASSWORD", "")
+                keyAlias = System.getenv("KEY_ALIAS")
+                    ?: localProperties.getProperty("KEY_ALIAS", "")
+                keyPassword = System.getenv("KEY_PASSWORD")
+                    ?: localProperties.getProperty("KEY_PASSWORD", "")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.astute.podcasts"
         minSdk = 26
@@ -28,12 +44,14 @@ android {
         buildConfigField(
             "String",
             "PODCAST_INDEX_API_KEY",
-            "\"${localProperties.getProperty("PODCAST_INDEX_API_KEY", "")}\""
+            "\"${System.getenv("PODCAST_INDEX_API_KEY")
+                ?: localProperties.getProperty("PODCAST_INDEX_API_KEY", "")}\""
         )
         buildConfigField(
             "String",
             "PODCAST_INDEX_API_SECRET",
-            "\"${localProperties.getProperty("PODCAST_INDEX_API_SECRET", "")}\""
+            "\"${System.getenv("PODCAST_INDEX_API_SECRET")
+                ?: localProperties.getProperty("PODCAST_INDEX_API_SECRET", "")}\""
         )
     }
 
@@ -41,6 +59,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
