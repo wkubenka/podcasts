@@ -30,10 +30,10 @@ Astute Podcasts is a native Android app built with Kotlin and Jetpack Compose. I
 
 ## Package Structure
 
-All source code lives under `com.astutepodcasts.app` in a single `app` module:
+All source code lives under `com.astute.podcasts` in a single `app` module:
 
 ```
-com.astutepodcasts.app/
+com.astute.podcasts/
 ├── PodcastApp.kt              Hilt application entry point
 ├── MainActivity.kt            Single activity, hosts Compose content
 │

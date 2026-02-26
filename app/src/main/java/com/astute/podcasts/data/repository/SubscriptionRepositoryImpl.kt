@@ -1,0 +1,99 @@
+package com.astute.podcasts.data.repository
+
+import com.astute.podcasts.data.local.dao.EpisodeDao
+import com.astute.podcasts.data.local.dao.PodcastDao
+import com.astute.podcasts.data.local.dao.SubscriptionDao
+import com.astute.podcasts.data.local.entity.SubscriptionEntity
+import com.astute.podcasts.data.mapper.EpisodeIdGenerator
+import com.astute.podcasts.data.mapper.toDomain
+import com.astute.podcasts.data.mapper.toEntity
+import com.astute.podcasts.data.remote.RssFeedParser
+import com.astute.podcasts.data.remote.RssFeedService
+import com.astute.podcasts.domain.model.Episode
+import com.astute.podcasts.domain.model.Podcast
+import com.astute.podcasts.domain.repository.SubscriptionRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class SubscriptionRepositoryImpl @Inject constructor(
+    private val podcastDao: PodcastDao,
+    private val episodeDao: EpisodeDao,
+    private val subscriptionDao: SubscriptionDao,
+    private val rssFeedService: RssFeedService,
+    private val rssFeedParser: RssFeedParser,
+    private val episodeIdGenerator: EpisodeIdGenerator,
+    private val artworkCacheManager: ArtworkCacheManager
+) : SubscriptionRepository {
+
+    override fun getSubscribedPodcasts(): Flow<List<Podcast>> {
+        return podcastDao.getSubscribedPodcasts().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getRecentEpisodes(): Flow<List<Episode>> {
+        return episodeDao.getRecentSubscribedEpisodes().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun isSubscribed(podcastId: Long): Flow<Boolean> {
+        return subscriptionDao.isSubscribed(podcastId)
+    }
+
+    override suspend fun subscribe(podcast: Podcast, episodes: List<Episode>) {
+        podcastDao.upsertAllPreservingArtworkCache(listOf(podcast.toEntity()))
+        episodeDao.upsertAllPreservingDownloadStatus(episodes.map { it.toEntity() })
+        subscriptionDao.insert(
+            SubscriptionEntity(
+                podcastId = podcast.id,
+                subscribedAt = System.currentTimeMillis()
+            )
+        )
+        if (!podcast.artworkUrl.isNullOrBlank()) {
+            artworkCacheManager.cacheArtwork(podcast.id, podcast.artworkUrl)
+        }
+    }
+
+    override suspend fun unsubscribe(podcastId: Long) {
+        subscriptionDao.deleteByPodcastId(podcastId)
+        artworkCacheManager.deleteArtwork(podcastId)
+        podcastDao.updateArtworkCache(podcastId, null, 0)
+    }
+
+    override suspend fun refreshFeeds() {
+        val feedInfos = podcastDao.getSubscribedPodcastFeedInfos()
+        var failureCount = 0
+        for (feedInfo in feedInfos) {
+            try {
+                val xml = rssFeedService.fetchFeed(feedInfo.feedUrl)
+                val podcast = podcastDao.getById(feedInfo.id)
+                val parsed = rssFeedParser.parse(xml, feedInfo.id, podcast?.artworkUrl)
+                val resolved = resolveEpisodeIds(feedInfo.id, parsed)
+                episodeDao.upsertAllPreservingDownloadStatus(resolved.map { it.toEntity() })
+            } catch (_: Exception) {
+                failureCount++
+            }
+        }
+        if (failureCount > 0 && failureCount == feedInfos.size) {
+            throw Exception("Failed to refresh feeds. Check your connection.")
+        }
+        try {
+            artworkCacheManager.refreshStaleArtwork()
+        } catch (_: Exception) {
+            // Artwork refresh is best-effort; don't fail the feed refresh
+        }
+    }
+
+    private suspend fun resolveEpisodeIds(podcastId: Long, episodes: List<Episode>): List<Episode> {
+        val existing = episodeDao.getEpisodeIdsByAudioUrl(podcastId)
+        val urlToId = existing.associate { it.audioUrl to it.id }
+        return episodes.map { episode ->
+            val existingId = urlToId[episode.audioUrl]
+            episode.copy(id = existingId ?: episodeIdGenerator.generateId(episode.audioUrl))
+        }
+    }
+}

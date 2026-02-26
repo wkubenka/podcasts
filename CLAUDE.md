@@ -16,7 +16,7 @@ Requires Android Studio with SDK 35 installed. Open the project root in Android 
 
 ## Project Structure
 
-Single-module Android app at `app/`. All source code under `com.astutepodcasts.app`:
+Single-module Android app at `app/`. All source code under `com.astute.podcasts`:
 
 - `domain/model/` - pure Kotlin data classes (Podcast, Episode, DownloadStatus, PlaybackState)
 - `domain/repository/` - repository interfaces

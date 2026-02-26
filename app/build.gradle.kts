@@ -15,11 +15,11 @@ rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use 
 }
 
 android {
-    namespace = "com.astutepodcasts.app"
+    namespace = "com.astute.podcasts"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.astutepodcasts.app"
+        applicationId = "com.astute.podcasts"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
