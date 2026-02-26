@@ -39,7 +39,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = System.getenv("VERSION_NAME")?.removePrefix("v") ?: "1.0.0"
 
         buildConfigField(
             "String",
