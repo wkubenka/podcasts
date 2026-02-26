@@ -32,6 +32,7 @@ jobs:
 
       - name: Build release APK
         env:
+          VERSION_NAME: ${{ github.ref_name }}
           KEYSTORE_FILE: ${{ github.workspace }}/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
