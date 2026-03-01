@@ -59,6 +59,22 @@ class PlaybackManager @Inject constructor(
     }
 
     fun play(episode: Episode) {
+        // If this episode is already the active media source, just ensure
+        // playback is running rather than rebuilding the MediaItem. Rebuilding
+        // would resolve the URI again via EpisodeMediaItemMapper, which may now
+        // pick the local file instead of the stream URL. Dynamic ad insertion
+        // means the same timestamp can map to different content in each source,
+        // so switching URIs mid-session causes an audible content jump.
+        if (currentEpisode?.id == episode.id) {
+            scope.launch {
+                val controller = connection.controller.value ?: return@launch
+                if (!controller.isPlaying) {
+                    controller.play()
+                }
+            }
+            return
+        }
+
         // Save current episode's position before switching
         saveCurrentPosition()
 
