@@ -1,8 +1,13 @@
 package com.astute.podcasts.playback
 
+import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.cache.ContentMetadata
+import androidx.media3.datasource.cache.SimpleCache
 import com.astute.podcasts.data.local.PlaybackPreferences
 import com.astute.podcasts.data.local.dao.EpisodeDao
 import com.astute.podcasts.domain.model.DownloadStatus
@@ -17,19 +22,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(UnstableApi::class)
 @Singleton
 class PlaybackManager @Inject constructor(
     private val connection: PlaybackServiceConnection,
     private val playbackPreferences: PlaybackPreferences,
     private val downloadRepository: DownloadRepository,
-    private val episodeDao: EpisodeDao
+    private val episodeDao: EpisodeDao,
+    private val cache: SimpleCache
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -59,6 +66,22 @@ class PlaybackManager @Inject constructor(
     }
 
     fun play(episode: Episode) {
+        // If this episode is already the active media source, just ensure
+        // playback is running rather than rebuilding the MediaItem. Rebuilding
+        // would resolve the URI again via EpisodeMediaItemMapper, which may now
+        // pick the local file instead of the stream URL. Dynamic ad insertion
+        // means the same timestamp can map to different content in each source,
+        // so switching URIs mid-session causes an audible content jump.
+        if (currentEpisode?.id == episode.id) {
+            scope.launch {
+                val controller = connection.controller.value ?: return@launch
+                if (!controller.isPlaying) {
+                    controller.play()
+                }
+            }
+            return
+        }
+
         // Save current episode's position before switching
         saveCurrentPosition()
 
@@ -84,43 +107,58 @@ class PlaybackManager @Inject constructor(
 
             when (episode.downloadStatus) {
                 DownloadStatus.NOT_DOWNLOADED, DownloadStatus.FAILED -> {
-                    downloadRepository.downloadEpisode(episode)
-                    observeDownloadCompletion(episode)
+                    // Don't launch a separate download — ExoPlayer's
+                    // CacheDataSource is already caching the stream bytes to
+                    // disk as it reads them, so the "download" IS the stream.
+                    observeCacheCompletion(episode)
                 }
                 DownloadStatus.QUEUED, DownloadStatus.DOWNLOADING -> {
-                    observeDownloadCompletion(episode)
+                    // A worker download is in-flight from the same URL but will
+                    // get different DAI ads. Cancel it and let the cache handle
+                    // offline availability instead.
+                    downloadRepository.cancelDownload(episode.id)
+                    observeCacheCompletion(episode)
                 }
-                DownloadStatus.DOWNLOADED -> { /* already local, nothing to do */ }
+                DownloadStatus.DOWNLOADED -> { /* already local or cached */ }
             }
         }
     }
 
-    private fun observeDownloadCompletion(episode: Episode) {
-        downloadObserverJob = scope.launch {
-            downloadRepository.observeEpisodeDownloaded(episode.id)
-                .filterNotNull()
-                .first { filePath ->
-                    val controller = connection.controller.value ?: return@first false
-                    // Only swap if we're still playing this episode
-                    if (currentEpisode?.id != episode.id) return@first true
+    /**
+     * Polls [SimpleCache] until every byte of the episode's audio URL has been
+     * written to the disk cache by [CacheDataSource]. Once complete the episode
+     * is marked [DownloadStatus.DOWNLOADED] so the UI and future plays treat it
+     * as a local file.
+     */
+    private fun observeCacheCompletion(episode: Episode) {
+        downloadObserverJob = scope.launch(Dispatchers.IO) {
+            episodeDao.updateDownloadStatus(episode.id, DownloadStatus.DOWNLOADING.name)
 
-                    val positionMs = controller.currentPosition
-                    val wasPlaying = controller.isPlaying
+            val cacheKey = episode.audioUrl
+
+            while (true) {
+                delay(3_000)
+                if (currentEpisode?.id != episode.id) break
+
+                val contentLength = cache.getContentMetadata(cacheKey)
+                    .get(ContentMetadata.KEY_CONTENT_LENGTH, C.LENGTH_UNSET.toLong())
+                if (contentLength <= 0) continue
+
+                val cachedBytes = cache.getCachedBytes(cacheKey, 0, contentLength)
+                if (cachedBytes >= contentLength) {
+                    episodeDao.updateDownloadStatus(
+                        episode.id, DownloadStatus.DOWNLOADED.name
+                    )
                     val updatedEpisode = episode.copy(
-                        localFilePath = filePath,
                         downloadStatus = DownloadStatus.DOWNLOADED
                     )
-                    val localMediaItem = EpisodeMediaItemMapper.toMediaItem(updatedEpisode)
-                    controller.setMediaItem(localMediaItem, positionMs)
-                    controller.prepare()
-                    if (wasPlaying) {
-                        controller.play()
-                    }
-
                     currentEpisode = updatedEpisode
-                    _playbackState.update { it.copy(currentEpisode = updatedEpisode) }
-                    true
+                    withContext(Dispatchers.Main) {
+                        _playbackState.update { it.copy(currentEpisode = updatedEpisode) }
+                    }
+                    break
                 }
+            }
         }
     }
 
