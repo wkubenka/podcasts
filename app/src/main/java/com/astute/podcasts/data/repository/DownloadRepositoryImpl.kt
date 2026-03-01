@@ -1,5 +1,8 @@
 package com.astute.podcasts.data.repository
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
@@ -17,10 +20,12 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(UnstableApi::class)
 @Singleton
 class DownloadRepositoryImpl @Inject constructor(
     private val workManager: WorkManager,
-    private val episodeDao: EpisodeDao
+    private val episodeDao: EpisodeDao,
+    private val cache: SimpleCache
 ) : DownloadRepository {
 
     override suspend fun downloadEpisode(episode: Episode) {
@@ -49,8 +54,13 @@ class DownloadRepositoryImpl @Inject constructor(
 
     override suspend fun deleteDownload(episodeId: Long) {
         val episode = episodeDao.getEpisodeById(episodeId)
+        // Remove worker-downloaded file if present
         episode?.localFilePath?.let { path ->
             File(path).delete()
+        }
+        // Remove stream-cached data so the episode is no longer available offline
+        episode?.audioUrl?.let { url ->
+            cache.removeResource(url)
         }
         episodeDao.updateDownloadStatus(episodeId, DownloadStatus.NOT_DOWNLOADED.name, null)
     }
