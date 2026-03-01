@@ -100,22 +100,19 @@ class PlaybackManager @Inject constructor(
             downloadRepository.observeEpisodeDownloaded(episode.id)
                 .filterNotNull()
                 .first { filePath ->
-                    val controller = connection.controller.value ?: return@first false
-                    // Only swap if we're still playing this episode
+                    // Only update metadata if we're still playing this episode
                     if (currentEpisode?.id != episode.id) return@first true
 
-                    val positionMs = controller.currentPosition
-                    val wasPlaying = controller.isPlaying
+                    // Update episode metadata so the UI reflects the download,
+                    // but do NOT swap the media source mid-playback. Dynamic ad
+                    // insertion can cause the streamed and downloaded versions to
+                    // differ, so seeking to the same timestamp in the downloaded
+                    // file may land on different content. The local file will be
+                    // used automatically the next time this episode is played.
                     val updatedEpisode = episode.copy(
                         localFilePath = filePath,
                         downloadStatus = DownloadStatus.DOWNLOADED
                     )
-                    val localMediaItem = EpisodeMediaItemMapper.toMediaItem(updatedEpisode)
-                    controller.setMediaItem(localMediaItem, positionMs)
-                    controller.prepare()
-                    if (wasPlaying) {
-                        controller.play()
-                    }
 
                     currentEpisode = updatedEpisode
                     _playbackState.update { it.copy(currentEpisode = updatedEpisode) }
