@@ -8,7 +8,6 @@ import com.astute.podcasts.domain.model.DownloadStatus
 import com.astute.podcasts.domain.repository.DownloadRepository
 import com.astute.podcasts.testutil.MainDispatcherRule
 import com.astute.podcasts.testutil.TestData
-import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -85,112 +84,6 @@ class PlaybackManagerTest {
         return controller to { listenerSlot.captured }
     }
 
-    // ── Download swap ────────────────────────────────────────────────
-
-    @Test
-    fun `download swap resumes playback when episode was playing`() {
-        val downloadFlow = MutableStateFlow<String?>(null)
-        val episode = TestData.episode(downloadStatus = DownloadStatus.NOT_DOWNLOADED)
-        val controller = createMockController(isPlaying = true, position = 45_000L)
-        controllerFlow.value = controller
-
-        coEvery { downloadRepository.observeEpisodeDownloaded(episode.id) } returns downloadFlow
-
-        val manager = createManager()
-        manager.play(episode)
-
-        // Simulate download completing while playing
-        downloadFlow.value = "/data/local/episode.mp3"
-
-        // play() called once from play(), and once from the download swap
-        verify(exactly = 2) { controller.play() }
-    }
-
-    @Test
-    fun `download swap does not resume playback when episode was paused`() {
-        val downloadFlow = MutableStateFlow<String?>(null)
-        val episode = TestData.episode(downloadStatus = DownloadStatus.NOT_DOWNLOADED)
-
-        // Controller starts playing, then is paused before download completes
-        val controller: MediaController = mockk(relaxed = true) {
-            every { currentPosition } returns 45_000L
-            every { duration } returns 3_600_000L
-            // isPlaying will be false when the download swap checks it
-            every { isPlaying } returns false
-        }
-        controllerFlow.value = controller
-
-        coEvery { downloadRepository.observeEpisodeDownloaded(episode.id) } returns downloadFlow
-
-        val manager = createManager()
-        manager.play(episode)
-
-        // Simulate download completing while paused
-        downloadFlow.value = "/data/local/episode.mp3"
-
-        // play() called once from play(), but NOT from the download swap
-        verify(exactly = 1) { controller.play() }
-    }
-
-    @Test
-    fun `download swap preserves playback position`() {
-        val downloadFlow = MutableStateFlow<String?>(null)
-        val episode = TestData.episode(downloadStatus = DownloadStatus.DOWNLOADING)
-        val controller = createMockController(isPlaying = false, position = 120_000L)
-        controllerFlow.value = controller
-
-        coEvery { downloadRepository.observeEpisodeDownloaded(episode.id) } returns downloadFlow
-
-        val manager = createManager()
-        manager.play(episode)
-
-        downloadFlow.value = "/data/local/episode.mp3"
-
-        verify { controller.setMediaItem(any(), eq(120_000L)) }
-    }
-
-    @Test
-    fun `download swap updates episode in playback state`() {
-        val downloadFlow = MutableStateFlow<String?>(null)
-        val episode = TestData.episode(downloadStatus = DownloadStatus.NOT_DOWNLOADED)
-        val controller = createMockController(isPlaying = true, position = 45_000L)
-        controllerFlow.value = controller
-
-        coEvery { downloadRepository.observeEpisodeDownloaded(episode.id) } returns downloadFlow
-
-        val manager = createManager()
-        manager.play(episode)
-
-        downloadFlow.value = "/data/local/episode.mp3"
-
-        val currentEpisode = manager.playbackState.value.currentEpisode
-        assertEquals(DownloadStatus.DOWNLOADED, currentEpisode?.downloadStatus)
-        assertEquals("/data/local/episode.mp3", currentEpisode?.localFilePath)
-    }
-
-    @Test
-    fun `download swap ignored when different episode is playing`() {
-        val downloadFlow = MutableStateFlow<String?>(null)
-        val episode1 = TestData.episode(id = 10L, downloadStatus = DownloadStatus.NOT_DOWNLOADED)
-        val episode2 = TestData.episode(id = 20L, downloadStatus = DownloadStatus.DOWNLOADED)
-        val controller = createMockController(isPlaying = true, position = 0L)
-        controllerFlow.value = controller
-
-        coEvery { downloadRepository.observeEpisodeDownloaded(episode1.id) } returns downloadFlow
-
-        val manager = createManager()
-        manager.play(episode1)
-
-        // Switch to a different episode before download completes
-        manager.play(episode2)
-
-        // Now episode1's download completes
-        downloadFlow.value = "/data/local/episode1.mp3"
-
-        // State should reflect episode2, not episode1
-        assertEquals(20L, manager.playbackState.value.currentEpisode?.id)
-    }
-
     // ── Resume playback position ─────────────────────────────────────
 
     @Test
@@ -242,10 +135,10 @@ class PlaybackManagerTest {
         verify { controller.play() }
     }
 
-    // ── Download trigger behavior ────────────────────────────────────
+    // ── Play does not trigger downloads ──────────────────────────────
 
     @Test
-    fun `play triggers download for NOT_DOWNLOADED episode`() {
+    fun `play does not download for NOT_DOWNLOADED episode`() {
         val episode = TestData.episode(downloadStatus = DownloadStatus.NOT_DOWNLOADED)
         val controller = createMockController()
         controllerFlow.value = controller
@@ -253,35 +146,11 @@ class PlaybackManagerTest {
         val manager = createManager()
         manager.play(episode)
 
-        coVerify { downloadRepository.downloadEpisode(episode) }
-    }
-
-    @Test
-    fun `play triggers download for FAILED episode`() {
-        val episode = TestData.episode(downloadStatus = DownloadStatus.FAILED)
-        val controller = createMockController()
-        controllerFlow.value = controller
-
-        val manager = createManager()
-        manager.play(episode)
-
-        coVerify { downloadRepository.downloadEpisode(episode) }
-    }
-
-    @Test
-    fun `play does not trigger download for DOWNLOADED episode`() {
-        val episode = TestData.episode(downloadStatus = DownloadStatus.DOWNLOADED)
-        val controller = createMockController()
-        controllerFlow.value = controller
-
-        val manager = createManager()
-        manager.play(episode)
-
         coVerify(exactly = 0) { downloadRepository.downloadEpisode(any()) }
     }
 
     @Test
-    fun `play observes download for DOWNLOADING episode without triggering new download`() {
+    fun `play does not cancel in-flight download`() {
         val episode = TestData.episode(downloadStatus = DownloadStatus.DOWNLOADING)
         val controller = createMockController()
         controllerFlow.value = controller
@@ -289,21 +158,19 @@ class PlaybackManagerTest {
         val manager = createManager()
         manager.play(episode)
 
-        coVerify(exactly = 0) { downloadRepository.downloadEpisode(any()) }
-        coVerify { downloadRepository.observeEpisodeDownloaded(episode.id) }
+        coVerify(exactly = 0) { downloadRepository.cancelDownload(any()) }
     }
 
     @Test
-    fun `play observes download for QUEUED episode without triggering new download`() {
-        val episode = TestData.episode(downloadStatus = DownloadStatus.QUEUED)
+    fun `play does not update download status`() {
+        val episode = TestData.episode(downloadStatus = DownloadStatus.NOT_DOWNLOADED)
         val controller = createMockController()
         controllerFlow.value = controller
 
         val manager = createManager()
         manager.play(episode)
 
-        coVerify(exactly = 0) { downloadRepository.downloadEpisode(any()) }
-        coVerify { downloadRepository.observeEpisodeDownloaded(episode.id) }
+        coVerify(exactly = 0) { episodeDao.updateDownloadStatus(any(), any()) }
     }
 
     // ── Episode finished lifecycle ───────────────────────────────────
